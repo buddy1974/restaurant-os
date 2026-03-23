@@ -91,6 +91,7 @@ Tables: 1 through 6
 Categories: Starters, Main Dishes, Drinks, Desserts
 Menu items: 12 items seeded
 Payment methods: cash, card
+Seat codes: fruit-based (APPLE, MANGO, BANANA, PINEAPPLE, STRAWBERRY, ORANGE, GRAPE, PEACH, CHERRY, LEMON, MELON, KIWI, PAPAYA, LYCHEE, GUAVA, COCONUT, BERRY, PLUM, FIG, LIME)
 Test URL when running locally: http://localhost:3000/menu/1
 
 ## Status

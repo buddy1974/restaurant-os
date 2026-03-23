@@ -42,11 +42,11 @@ export default function MenuPage({
   const [seat, setSeat] = useState<{ id: string; seat_code: string } | null>(null);
 
   const seatEmoji: Record<string, string> = {
-    LION: '🦁', EAGLE: '🦅', TIGER: '🐯', HAWK: '🦅',
-    WOLF: '🐺', BEAR: '🐻', FOX: '🦊', OWL: '🦉',
-    DEER: '🦌', BULL: '🐂', SWAN: '🦢', CROW: '🐦',
-    LYNX: '🐱', BOAR: '🐗', CRANE: '🕊️', VIPER: '🐍',
-    BISON: '🦬', MOOSE: '🫎', RAVEN: '🐦', GECKO: '🦎',
+    APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
+    STRAWBERRY: '🍓', ORANGE: '🍊', GRAPE: '🍇', PEACH: '🍑',
+    CHERRY: '🍒', LEMON: '🍋', MELON: '🍈', KIWI: '🥝',
+    PAPAYA: '🧡', LYCHEE: '🍬', GUAVA: '🍏', COCONUT: '🥥',
+    BERRY: '🫐', PLUM: '🍆', FIG: '🍂', LIME: '🟢',
   };
 
   const { categories, items, loading: menuLoading } = useMenu(

@@ -42,11 +42,11 @@ interface SeatWithOrders {
 }
 
 const seatEmoji: Record<string, string> = {
-  LION: '🦁', EAGLE: '🦅', TIGER: '🐯', HAWK: '🦅',
-  WOLF: '🐺', BEAR: '🐻', FOX: '🦊', OWL: '🦉',
-  DEER: '🦌', BULL: '🐂', SWAN: '🦢', CROW: '🐦',
-  LYNX: '🐱', BOAR: '🐗', CRANE: '🕊️', VIPER: '🐍',
-  BISON: '🦬', MOOSE: '🫎', RAVEN: '🐦', GECKO: '🦎',
+  APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
+  STRAWBERRY: '🍓', ORANGE: '🍊', GRAPE: '🍇', PEACH: '🍑',
+  CHERRY: '🍒', LEMON: '🍋', MELON: '🍈', KIWI: '🥝',
+  PAPAYA: '🧡', LYCHEE: '🍬', GUAVA: '🍏', COCONUT: '🥥',
+  BERRY: '🫐', PLUM: '🍆', FIG: '🍂', LIME: '🟢',
 };
 
 export default function StaffPage({
