@@ -39,6 +39,15 @@ export default function MenuPage({
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'payment'>('cart');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | null>(null);
+  const [seat, setSeat] = useState<{ id: string; seat_code: string } | null>(null);
+
+  const seatEmoji: Record<string, string> = {
+    LION: '🦁', EAGLE: '🦅', TIGER: '🐯', HAWK: '🦅',
+    WOLF: '🐺', BEAR: '🐻', FOX: '🦊', OWL: '🦉',
+    DEER: '🦌', BULL: '🐂', SWAN: '🦢', CROW: '🐦',
+    LYNX: '🐱', BOAR: '🐗', CRANE: '🕊️', VIPER: '🐍',
+    BISON: '🦬', MOOSE: '🫎', RAVEN: '🐦', GECKO: '🦎',
+  };
 
   const { categories, items, loading: menuLoading } = useMenu(
     table?.restaurant_id || null
@@ -65,18 +74,25 @@ export default function MenuPage({
     loadTable();
   }, [slug, tableNumber]);
 
-  // Step 2 — create or resume session
+  // Step 2 — create or resume session + assign seat
   useEffect(() => {
     if (!table) return;
 
     async function loadSession() {
       try {
+        // Check for existing seat in localStorage
+        const storedSeat = localStorage.getItem(`seat_${table!.id}`);
+        if (storedSeat) {
+          const parsedSeat = JSON.parse(storedSeat);
+          setSeat(parsedSeat);
+        }
+
         const res = await fetch(`/api/sessions?tableId=${table!.id}`);
         const data = await res.json();
 
-        if (data.session) {
-          setSession(data.session);
-        } else {
+        let activeSession = data.session;
+
+        if (!activeSession) {
           const createRes = await fetch('/api/sessions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -86,7 +102,24 @@ export default function MenuPage({
             }),
           });
           const createData = await createRes.json();
-          setSession(createData.session);
+          activeSession = createData.session;
+        }
+
+        setSession(activeSession);
+
+        // Assign seat if not already assigned
+        const storedSeatRaw = localStorage.getItem(`seat_${table!.id}`);
+        if (!storedSeatRaw) {
+          const seatRes = await fetch('/api/seats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: activeSession.id }),
+          });
+          const seatData = await seatRes.json();
+          if (seatData.seat) {
+            setSeat(seatData.seat);
+            localStorage.setItem(`seat_${table!.id}`, JSON.stringify(seatData.seat));
+          }
         }
       } catch {
         setError('Could not start session. Please try again.');
@@ -115,6 +148,7 @@ export default function MenuPage({
           restaurantId: table!.restaurant_id,
           items: cart,
           paymentMethod,
+          seatId: seat?.id,
         }),
       });
       if (!res.ok) throw new Error('Order failed');
@@ -164,17 +198,27 @@ export default function MenuPage({
             </h1>
             <p className="text-sm text-gray-500">{table?.label}</p>
           </div>
-          <button
-            onClick={() => setShowCart(true)}
-            className="relative bg-orange-500 text-white px-4 py-2 rounded-full text-sm font-medium"
-          >
-            Cart
-            {itemCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {itemCount}
-              </span>
+          <div className="flex items-center gap-3">
+            {seat && (
+              <div className="text-center bg-orange-50 border border-orange-200 rounded-xl px-3 py-1.5">
+                <p className="text-xs text-orange-400 font-medium leading-none">Your seat</p>
+                <p className="text-sm font-bold text-orange-600 leading-tight">
+                  {seatEmoji[seat.seat_code] || '🪑'} {seat.seat_code}
+                </p>
+              </div>
             )}
-          </button>
+            <button
+              onClick={() => setShowCart(true)}
+              className="relative bg-orange-500 text-white px-4 py-2 rounded-full text-sm font-medium"
+            >
+              Cart
+              {itemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Category tabs */}

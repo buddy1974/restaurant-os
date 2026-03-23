@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 // POST — create a new order
 export async function POST(request: NextRequest) {
   try {
-    const { sessionId, restaurantId, items, notes } = await request.json();
+    const { sessionId, restaurantId, items, notes, seatId } = await request.json();
 
     if (!sessionId || !restaurantId || !items || items.length === 0) {
       return NextResponse.json(
@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
 
     // Create order
     const [order] = await sql`
-      INSERT INTO orders (session_id, restaurant_id, total, notes, status, payment_status)
-      VALUES (${sessionId}, ${restaurantId}, ${total}, ${notes || null}, 'pending', 'unpaid')
+      INSERT INTO orders (session_id, restaurant_id, total, notes, status, payment_status, seat_id)
+      VALUES (${sessionId}, ${restaurantId}, ${total}, ${notes || null}, 'pending', 'unpaid', ${seatId || null})
       RETURNING id, status, payment_status, total, created_at
     `;
 

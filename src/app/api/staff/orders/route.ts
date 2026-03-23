@@ -13,9 +13,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Get all seats for this session
+    const seats = await sql`
+      SELECT id, seat_code, joined_at, paid
+      FROM seats
+      WHERE session_id = ${sessionId}
+      ORDER BY joined_at ASC
+    `;
+
+    // Get all orders with seat info
     const orders = await sql`
       SELECT o.id, o.status, o.payment_method, o.payment_status,
-             o.total, o.notes, o.created_at
+             o.total, o.notes, o.created_at, o.seat_id
       FROM orders o
       WHERE o.session_id = ${sessionId}
       ORDER BY o.created_at ASC
@@ -32,12 +41,40 @@ export async function GET(request: NextRequest) {
       `;
     }
 
-    const ordersWithItems = orders.map((order) => ({
-      ...order,
-      items: items.filter((item) => item.order_id === (order as { id: string }).id),
-    }));
+    // Group orders by seat
+    const seatsWithOrders = seats.map((seat) => {
+      const seatOrders = orders
+        .filter((o) => (o as { seat_id: string }).seat_id === (seat as { id: string }).id)
+        .map((order) => ({
+          ...order,
+          items: items.filter(
+            (item) => item.order_id === (order as { id: string }).id
+          ),
+        }));
 
-    return NextResponse.json({ orders: ordersWithItems });
+      const seatTotal = seatOrders.reduce(
+        (sum, o) => sum + Number((o as unknown as { total: number }).total),
+        0
+      );
+
+      return {
+        ...seat,
+        orders: seatOrders,
+        seat_total: seatTotal,
+      };
+    });
+
+    // Also include orders with no seat (legacy)
+    const unseatOrders = orders
+      .filter((o) => !(o as { seat_id: string }).seat_id)
+      .map((order) => ({
+        ...order,
+        items: items.filter(
+          (item) => item.order_id === (order as { id: string }).id
+        ),
+      }));
+
+    return NextResponse.json({ seats: seatsWithOrders, unseatOrders });
   } catch (error) {
     console.error('GET /api/staff/orders error:', error);
     return NextResponse.json(

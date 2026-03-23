@@ -20,7 +20,6 @@ interface OrderItem {
   name: string;
   price: number;
   quantity: number;
-  notes?: string;
 }
 
 interface Order {
@@ -33,6 +32,23 @@ interface Order {
   items: OrderItem[];
 }
 
+interface SeatWithOrders {
+  id: string;
+  seat_code: string;
+  joined_at: string;
+  paid: boolean;
+  orders: Order[];
+  seat_total: number;
+}
+
+const seatEmoji: Record<string, string> = {
+  LION: '🦁', EAGLE: '🦅', TIGER: '🐯', HAWK: '🦅',
+  WOLF: '🐺', BEAR: '🐻', FOX: '🦊', OWL: '🦉',
+  DEER: '🦌', BULL: '🐂', SWAN: '🦢', CROW: '🐦',
+  LYNX: '🐱', BOAR: '🐗', CRANE: '🕊️', VIPER: '🐍',
+  BISON: '🦬', MOOSE: '🫎', RAVEN: '🐦', GECKO: '🦎',
+};
+
 export default function StaffPage({
   params,
 }: {
@@ -41,7 +57,8 @@ export default function StaffPage({
   const { slug } = React.use(params);
   const [tables, setTables] = useState<TableRow[]>([]);
   const [selectedTable, setSelectedTable] = useState<TableRow | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [seats, setSeats] = useState<SeatWithOrders[]>([]);
+  const [unseatOrders, setUnseatOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -67,7 +84,8 @@ export default function StaffPage({
     try {
       const res = await fetch(`/api/staff/orders?sessionId=${sessionId}`);
       const data = await res.json();
-      setOrders(data.orders || []);
+      setSeats(data.seats || []);
+      setUnseatOrders(data.unseatOrders || []);
     } catch (err) {
       console.error('Failed to fetch orders', err);
     }
@@ -78,7 +96,8 @@ export default function StaffPage({
     if (table.session_id) {
       fetchOrders(table.session_id);
     } else {
-      setOrders([]);
+      setSeats([]);
+      setUnseatOrders([]);
     }
   }
 
@@ -102,7 +121,8 @@ export default function StaffPage({
       }
       if (action === 'close_table') {
         setSelectedTable(null);
-        setOrders([]);
+        setSeats([]);
+        setUnseatOrders([]);
       }
     } catch (err) {
       console.error('Action failed', err);
@@ -134,6 +154,9 @@ export default function StaffPage({
 
   const formatTime = (t: string) =>
     new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+  const grandTotal = seats.reduce((sum, s) => sum + Number(s.seat_total), 0) +
+    unseatOrders.reduce((sum, o) => sum + Number(o.total), 0);
 
   if (loading) {
     return (
@@ -194,60 +217,97 @@ export default function StaffPage({
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-gray-900">Table {selectedTable.number}</h2>
               <button
-                onClick={() => { setSelectedTable(null); setOrders([]); }}
+                onClick={() => { setSelectedTable(null); setSeats([]); }}
                 className="text-gray-400 text-xl"
               >✕</button>
             </div>
 
-            {orders.length === 0 ? (
+            {seats.length === 0 && unseatOrders.length === 0 ? (
               <p className="text-gray-400 text-sm text-center py-6">No orders yet.</p>
             ) : (
               <div className="space-y-4">
-                {orders.map((order) => (
-                  <div key={order.id} className="border border-gray-100 rounded-lg p-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs text-gray-400">{formatTime(order.created_at)}</span>
-                      <div className="flex gap-1">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          order.payment_status === 'paid'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {order.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
-                        </span>
-                        {order.payment_method && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                            {order.payment_method}
-                          </span>
-                        )}
-                      </div>
+
+                {/* Seats */}
+                {seats.map((seat) => (
+                  <div key={seat.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                    {/* Seat Header */}
+                    <div className="bg-gray-50 px-3 py-2 flex justify-between items-center">
+                      <span className="font-bold text-gray-800 text-sm">
+                        {seatEmoji[seat.seat_code] || '🪑'} {seat.seat_code}
+                      </span>
+                      <span className="text-xs font-semibold text-orange-600">
+                        {formatPrice(seat.seat_total)}
+                      </span>
                     </div>
 
-                    <div className="space-y-1 mb-2">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="flex justify-between text-sm">
-                          <span className="text-gray-700">{item.quantity}× {item.name}</span>
-                          <span className="text-gray-500">{formatPrice(item.price * item.quantity)}</span>
-                        </div>
-                      ))}
+                    {/* Seat Orders */}
+                    <div className="p-3 space-y-2">
+                      {seat.orders.length === 0 ? (
+                        <p className="text-xs text-gray-300">No orders yet.</p>
+                      ) : (
+                        seat.orders.map((order) => (
+                          <div key={order.id}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs text-gray-400">{formatTime(order.created_at)}</span>
+                              <div className="flex gap-1">
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                  order.payment_status === 'paid'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-yellow-100 text-yellow-700'
+                                }`}>
+                                  {order.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
+                                </span>
+                                {order.payment_method && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                                    {order.payment_method}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {order.items.map((item) => (
+                              <div key={item.id} className="flex justify-between text-xs text-gray-600 py-0.5">
+                                <span>{item.quantity}× {item.name}</span>
+                                <span>{formatPrice(item.price * item.quantity)}</span>
+                              </div>
+                            ))}
+                            {order.payment_status !== 'paid' && (
+                              <button
+                                onClick={() => handleAction('mark_paid', order.id)}
+                                disabled={actionLoading}
+                                className="w-full mt-2 bg-green-500 text-white py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                              >
+                                Mark as Paid
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
                     </div>
-
-                    <div className="flex justify-between font-semibold text-sm border-t pt-2">
-                      <span>Total</span>
-                      <span>{formatPrice(order.total)}</span>
-                    </div>
-
-                    {order.payment_status !== 'paid' && (
-                      <button
-                        onClick={() => handleAction('mark_paid', order.id)}
-                        disabled={actionLoading}
-                        className="w-full mt-2 bg-green-500 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                      >
-                        Mark as Paid
-                      </button>
-                    )}
                   </div>
                 ))}
+
+                {/* Legacy unseated orders */}
+                {unseatOrders.length > 0 && (
+                  <div className="border border-gray-100 rounded-xl p-3">
+                    <p className="text-xs font-semibold text-gray-400 mb-2">Other Orders</p>
+                    {unseatOrders.map((order) => (
+                      <div key={order.id}>
+                        {order.items.map((item) => (
+                          <div key={item.id} className="flex justify-between text-xs text-gray-600 py-0.5">
+                            <span>{item.quantity}× {item.name}</span>
+                            <span>{formatPrice(item.price * item.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Grand Total */}
+                <div className="border-t pt-3 flex justify-between font-bold text-gray-900">
+                  <span>Table Total</span>
+                  <span>{formatPrice(grandTotal)}</span>
+                </div>
               </div>
             )}
 
