@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const [session] = await sql`
-      SELECT id, table_id, restaurant_id, status, started_at
+      SELECT id, table_id, restaurant_id, status, session_type, started_at
       FROM table_sessions
       WHERE table_id = ${tableId}
         AND status = 'active'
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 // POST — create a new session for a table
 export async function POST(request: NextRequest) {
   try {
-    const { tableId, restaurantId } = await request.json();
+    const { tableId, restaurantId, sessionType } = await request.json();
 
     if (!tableId || !restaurantId) {
       return NextResponse.json(
@@ -53,11 +53,11 @@ export async function POST(request: NextRequest) {
         AND status = 'active'
     `;
 
-    // Create new session
+    // Create new session with session type
     const [session] = await sql`
-      INSERT INTO table_sessions (table_id, restaurant_id, status)
-      VALUES (${tableId}, ${restaurantId}, 'active')
-      RETURNING id, table_id, restaurant_id, status, started_at
+      INSERT INTO table_sessions (table_id, restaurant_id, status, session_type)
+      VALUES (${tableId}, ${restaurantId}, 'active', ${sessionType || 'individual'})
+      RETURNING id, table_id, restaurant_id, status, session_type, started_at
     `;
 
     // Mark table as occupied

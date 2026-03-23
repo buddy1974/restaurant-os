@@ -10,6 +10,7 @@ interface TableRow {
   restaurant_id: string;
   session_id: string | null;
   session_status: string | null;
+  session_type: string | null;
   started_at: string | null;
   order_count: number;
   session_total: number;
@@ -196,6 +197,15 @@ export default function StaffPage({
                 <span className={`inline-block text-xs px-2 py-0.5 rounded-full border mt-1 ${statusColor(table.status)}`}>
                   {statusLabel(table.status)}
                 </span>
+                {table.session_type && table.status !== 'free' && (
+                  <span className={`inline-block text-xs px-2 py-0.5 rounded-full border mt-1 ml-1 ${
+                    table.session_type === 'group'
+                      ? 'bg-blue-50 text-blue-600 border-blue-200'
+                      : 'bg-gray-50 text-gray-500 border-gray-200'
+                  }`}>
+                    {table.session_type === 'group' ? '👨‍👩‍👧 Group' : '👤 Individual'}
+                  </span>
+                )}
                 {table.order_count > 0 && (
                   <p className="text-xs text-gray-500 mt-2">
                     {table.order_count} order{Number(table.order_count) > 1 ? 's' : ''} · {formatPrice(table.session_total)}
@@ -215,7 +225,18 @@ export default function StaffPage({
         {selectedTable && (
           <div className="w-80 bg-white rounded-xl shadow-sm border border-gray-200 p-4 h-fit">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-bold text-gray-900">Table {selectedTable.number}</h2>
+              <div>
+                <h2 className="font-bold text-gray-900">Table {selectedTable.number}</h2>
+                {selectedTable.session_type && (
+                  <span className={`text-xs font-medium ${
+                    selectedTable.session_type === 'group'
+                      ? 'text-blue-500'
+                      : 'text-gray-400'
+                  }`}>
+                    {selectedTable.session_type === 'group' ? '👨‍👩‍👧 Group table' : '👤 Individual'}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => { setSelectedTable(null); setSeats([]); }}
                 className="text-gray-400 text-xl"

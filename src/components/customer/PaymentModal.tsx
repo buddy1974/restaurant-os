@@ -19,6 +19,7 @@ interface Props {
   summary: SessionSummary;
   currentSeatId: string;
   currentSeatCode: string;
+  sessionType: 'individual' | 'group';
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -27,6 +28,7 @@ export default function PaymentModal({
   summary,
   currentSeatId,
   currentSeatCode,
+  sessionType,
   onClose,
   onSuccess,
 }: Props) {
@@ -143,19 +145,39 @@ export default function PaymentModal({
         {/* STEP 1 — Mode Selection */}
         {step === 'mode' && (
           <div className="space-y-3">
-            <button
-              onClick={() => selectMode('unit')}
-              className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
-            >
-              <span className="text-3xl">🧾</span>
-              <div>
-                <p className="font-semibold text-gray-900">Pay my bill</p>
-                <p className="text-sm text-gray-400">Only your orders · {formatPrice(currentSeatTotal)}</p>
-              </div>
-            </button>
 
-            {unpaidSeats.length > 1 && (
+            {/* Individual session — only pay my bill */}
+            {sessionType === 'individual' && (
+              <button
+                onClick={() => selectMode('unit')}
+                className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+              >
+                <span className="text-3xl">🧾</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Pay my bill</p>
+                  <p className="text-sm text-gray-400">
+                    Your orders · {formatPrice(currentSeatTotal)}
+                  </p>
+                </div>
+              </button>
+            )}
+
+            {/* Group session — all options */}
+            {sessionType === 'group' && (
               <>
+                <button
+                  onClick={() => selectMode('unit')}
+                  className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                >
+                  <span className="text-3xl">🧾</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">Pay my share</p>
+                    <p className="text-sm text-gray-400">
+                      Only your orders · {formatPrice(currentSeatTotal)}
+                    </p>
+                  </div>
+                </button>
+
                 <button
                   onClick={() => selectMode('group')}
                   className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
@@ -163,7 +185,9 @@ export default function PaymentModal({
                   <span className="text-3xl">👨‍👩‍👧</span>
                   <div>
                     <p className="font-semibold text-gray-900">Pay for everyone</p>
-                    <p className="text-sm text-gray-400">Full table · {formatPrice(summary.unpaidTotal)}</p>
+                    <p className="text-sm text-gray-400">
+                      Full table · {formatPrice(summary.unpaidTotal)}
+                    </p>
                   </div>
                 </button>
 
@@ -187,7 +211,9 @@ export default function PaymentModal({
                   <span className="text-3xl">🤝</span>
                   <div>
                     <p className="font-semibold text-gray-900">Split with some</p>
-                    <p className="text-sm text-gray-400">Choose which seats to combine</p>
+                    <p className="text-sm text-gray-400">
+                      Choose which seats to combine
+                    </p>
                   </div>
                 </button>
               </>

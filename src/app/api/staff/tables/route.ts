@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
         t.restaurant_id,
         s.id as session_id,
         s.status as session_status,
+        s.session_type,
         s.started_at,
         COUNT(DISTINCT o.id) as order_count,
         COALESCE(SUM(o.total), 0) as session_total
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
         SELECT id FROM restaurants WHERE slug = ${slug}
       )
       GROUP BY t.id, t.number, t.label, t.status, t.restaurant_id,
-               s.id, s.status, s.started_at
+               s.id, s.status, s.session_type, s.started_at
       ORDER BY t.number ASC
     `;
 

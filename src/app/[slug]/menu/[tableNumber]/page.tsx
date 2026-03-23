@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useMenu } from '@/hooks/useMenu';
 import { useCart } from '@/hooks/useCart';
 import PaymentModal from '@/components/customer/PaymentModal';
+import SessionSetup from '@/components/customer/SessionSetup';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
 
 interface TableData {
@@ -23,6 +24,7 @@ interface SessionData {
   table_id: string;
   restaurant_id: string;
   status: string;
+  session_type: 'individual' | 'group';
 }
 
 export default function MenuPage({
@@ -39,9 +41,11 @@ export default function MenuPage({
   const [showCart, setShowCart] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | null>(null);
   const [seat, setSeat] = useState<{ id: string; seat_code: string } | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [sessionType, setSessionType] = useState<'individual' | 'group' | null>(null);
+  const [settingUpSession, setSettingUpSession] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
 
   const seatEmoji: Record<string, string> = {
     APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -83,52 +87,42 @@ export default function MenuPage({
 
     async function loadSession() {
       try {
-        // Always get fresh session from server
         const res = await fetch(`/api/sessions?tableId=${table!.id}`);
         const data = await res.json();
 
-        let activeSession = data.session;
+        if (data.session) {
+          // Session exists — join it
+          const activeSession = data.session;
+          setSession(activeSession);
+          setSessionType(activeSession.session_type);
 
-        if (!activeSession) {
-          const createRes = await fetch('/api/sessions', {
+          // Check stored seat
+          const storedSeatRaw = localStorage.getItem(`seat_${table!.id}`);
+          if (storedSeatRaw) {
+            const parsedSeat = JSON.parse(storedSeatRaw);
+            if (parsedSeat.session_id === activeSession.id) {
+              setSeat(parsedSeat);
+              return;
+            } else {
+              localStorage.removeItem(`seat_${table!.id}`);
+            }
+          }
+
+          // Assign seat
+          const seatRes = await fetch('/api/seats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tableId: table!.id,
-              restaurantId: table!.restaurant_id,
-            }),
+            body: JSON.stringify({ sessionId: activeSession.id }),
           });
-          const createData = await createRes.json();
-          activeSession = createData.session;
-        }
-
-        setSession(activeSession);
-
-        // Check if stored seat belongs to this active session
-        const storedSeatRaw = localStorage.getItem(`seat_${table!.id}`);
-        if (storedSeatRaw) {
-          const parsedSeat = JSON.parse(storedSeatRaw);
-          // Validate seat belongs to current active session
-          if (parsedSeat.session_id === activeSession.id) {
-            setSeat(parsedSeat);
-            return;
-          } else {
-            // Stale seat from old session — clear it
-            localStorage.removeItem(`seat_${table!.id}`);
+          const seatData = await seatRes.json();
+          if (seatData.seat) {
+            const seatWithSession = { ...seatData.seat, session_id: activeSession.id };
+            setSeat(seatWithSession);
+            localStorage.setItem(`seat_${table!.id}`, JSON.stringify(seatWithSession));
           }
-        }
-
-        // Assign new seat
-        const seatRes = await fetch('/api/seats', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId: activeSession.id }),
-        });
-        const seatData = await seatRes.json();
-        if (seatData.seat) {
-          const seatWithSession = { ...seatData.seat, session_id: activeSession.id };
-          setSeat(seatWithSession);
-          localStorage.setItem(`seat_${table!.id}`, JSON.stringify(seatWithSession));
+        } else {
+          // No session — first person, needs to choose type
+          setNeedsSetup(true);
         }
       } catch {
         setError('Could not start session. Please try again.');
@@ -138,6 +132,44 @@ export default function MenuPage({
     loadSession();
   }, [table]);
 
+  async function handleSessionSetup(type: 'individual' | 'group') {
+    if (!table) return;
+    setSettingUpSession(true);
+    try {
+      const createRes = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableId: table.id,
+          restaurantId: table.restaurant_id,
+          sessionType: type,
+        }),
+      });
+      const createData = await createRes.json();
+      const activeSession = createData.session;
+      setSession(activeSession);
+      setSessionType(type);
+      setNeedsSetup(false);
+
+      // Assign seat
+      const seatRes = await fetch('/api/seats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: activeSession.id }),
+      });
+      const seatData = await seatRes.json();
+      if (seatData.seat) {
+        const seatWithSession = { ...seatData.seat, session_id: activeSession.id };
+        setSeat(seatWithSession);
+        localStorage.setItem(`seat_${table.id}`, JSON.stringify(seatWithSession));
+      }
+    } catch {
+      setError('Could not start session. Please try again.');
+    } finally {
+      setSettingUpSession(false);
+    }
+  }
+
   // Set first category as active
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
@@ -145,39 +177,21 @@ export default function MenuPage({
     }
   }, [categories, activeCategory]);
 
-  async function placeOrder() {
-    if (!session || cart.length === 0 || !paymentMethod) return;
-    setOrdering(true);
-    try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: session.id,
-          restaurantId: table!.restaurant_id,
-          items: cart,
-          paymentMethod,
-          seatId: seat?.id,
-        }),
-      });
-      if (!res.ok) throw new Error('Order failed');
-      clearCart();
-      setShowCart(false);
-      setPaymentMethod(null);
-      setOrderSuccess(true);
-      await refetchSummary();
-      setTimeout(() => setOrderSuccess(false), 4000);
-    } catch {
-      alert('Could not place order. Please try again.');
-    } finally {
-      setOrdering(false);
-    }
-  }
-
   const filteredItems = items.filter((i) => i.category_id === activeCategory);
   const currency = table?.currency || 'EUR';
   const formatPrice = (p: number) =>
     new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(p);
+
+  if (needsSetup && table) {
+    return (
+      <SessionSetup
+        tableLabel={table.label || `Table ${table.number}`}
+        restaurantName={table.restaurant_name}
+        onSelect={handleSessionSetup}
+        loading={settingUpSession}
+      />
+    );
+  }
 
   if (loadingTable || menuLoading) {
     return (
@@ -409,6 +423,7 @@ export default function MenuPage({
           summary={summary}
           currentSeatId={seat.id}
           currentSeatCode={seat.seat_code}
+          sessionType={sessionType || 'individual'}
           onClose={() => setShowPaymentModal(false)}
           onSuccess={() => {
             setShowPaymentModal(false);
