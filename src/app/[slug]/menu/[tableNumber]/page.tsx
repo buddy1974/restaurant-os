@@ -80,13 +80,7 @@ export default function MenuPage({
 
     async function loadSession() {
       try {
-        // Check for existing seat in localStorage
-        const storedSeat = localStorage.getItem(`seat_${table!.id}`);
-        if (storedSeat) {
-          const parsedSeat = JSON.parse(storedSeat);
-          setSeat(parsedSeat);
-        }
-
+        // Always get fresh session from server
         const res = await fetch(`/api/sessions?tableId=${table!.id}`);
         const data = await res.json();
 
@@ -107,19 +101,31 @@ export default function MenuPage({
 
         setSession(activeSession);
 
-        // Assign seat if not already assigned
+        // Check if stored seat belongs to this active session
         const storedSeatRaw = localStorage.getItem(`seat_${table!.id}`);
-        if (!storedSeatRaw) {
-          const seatRes = await fetch('/api/seats', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: activeSession.id }),
-          });
-          const seatData = await seatRes.json();
-          if (seatData.seat) {
-            setSeat(seatData.seat);
-            localStorage.setItem(`seat_${table!.id}`, JSON.stringify(seatData.seat));
+        if (storedSeatRaw) {
+          const parsedSeat = JSON.parse(storedSeatRaw);
+          // Validate seat belongs to current active session
+          if (parsedSeat.session_id === activeSession.id) {
+            setSeat(parsedSeat);
+            return;
+          } else {
+            // Stale seat from old session — clear it
+            localStorage.removeItem(`seat_${table!.id}`);
           }
+        }
+
+        // Assign new seat
+        const seatRes = await fetch('/api/seats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: activeSession.id }),
+        });
+        const seatData = await seatRes.json();
+        if (seatData.seat) {
+          const seatWithSession = { ...seatData.seat, session_id: activeSession.id };
+          setSeat(seatWithSession);
+          localStorage.setItem(`seat_${table!.id}`, JSON.stringify(seatWithSession));
         }
       } catch {
         setError('Could not start session. Please try again.');
