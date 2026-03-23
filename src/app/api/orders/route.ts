@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { sendTelegramMessage, formatOrderNotification } from '@/lib/telegram';
 
 // GET — fetch all orders for a session
 export async function GET(request: NextRequest) {
@@ -87,6 +88,36 @@ export async function POST(request: NextRequest) {
           ${item.notes || null}
         )
       `;
+    }
+
+    // Send Telegram notification
+    try {
+      const [tableInfo] = await sql`
+        SELECT t.number
+        FROM tables t
+        JOIN table_sessions s ON s.table_id = t.id
+        WHERE s.id = ${sessionId}
+        LIMIT 1
+      `;
+
+      const seatInfo = seatId ? await sql`
+        SELECT seat_code FROM seats WHERE id = ${seatId} LIMIT 1
+      ` : [];
+
+      const message = formatOrderNotification({
+        tableNumber: tableInfo ? Number((tableInfo as { number: number }).number) : 0,
+        seatCode: seatInfo.length > 0 ? String((seatInfo[0] as { seat_code: string }).seat_code) : 'UNKNOWN',
+        items: items.map((i: { name: string; quantity: number; price: number }) => ({
+          name: i.name,
+          quantity: i.quantity,
+          price: i.price,
+        })),
+        total,
+      });
+
+      await sendTelegramMessage(message);
+    } catch (telegramError) {
+      console.error('Telegram notification error:', telegramError);
     }
 
     return NextResponse.json({ order }, { status: 201 });
