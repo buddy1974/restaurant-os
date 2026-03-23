@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useMenu } from '@/hooks/useMenu';
 import { useCart } from '@/hooks/useCart';
+import PaymentModal from '@/components/customer/PaymentModal';
+import { useSessionSummary } from '@/hooks/useSessionSummary';
 
 interface TableData {
   id: string;
@@ -37,9 +39,9 @@ export default function MenuPage({
   const [showCart, setShowCart] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'payment'>('cart');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | null>(null);
   const [seat, setSeat] = useState<{ id: string; seat_code: string } | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const seatEmoji: Record<string, string> = {
     APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -54,6 +56,7 @@ export default function MenuPage({
   );
   const { cart, addItem, removeItem, updateQuantity, clearCart, total, itemCount } =
     useCart(session?.id || null);
+  const { summary, refetch: refetchSummary } = useSessionSummary(session?.id || null);
 
   // Step 1 — load table
   useEffect(() => {
@@ -160,9 +163,9 @@ export default function MenuPage({
       if (!res.ok) throw new Error('Order failed');
       clearCart();
       setShowCart(false);
-      setCheckoutStep('cart');
       setPaymentMethod(null);
       setOrderSuccess(true);
+      await refetchSummary();
       setTimeout(() => setOrderSuccess(false), 4000);
     } catch {
       alert('Could not place order. Please try again.');
@@ -315,99 +318,37 @@ export default function MenuPage({
       {showCart && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40">
           <div className="bg-white rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Your Order</h2>
+              <button onClick={() => setShowCart(false)} className="text-gray-400 text-2xl">✕</button>
+            </div>
 
-            {checkoutStep === 'cart' && (
+            {cart.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">Your cart is empty.</p>
+            ) : (
               <>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold">Your Order</h2>
-                  <button onClick={() => setShowCart(false)} className="text-gray-400 text-2xl">✕</button>
-                </div>
-
-                {cart.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">Your cart is empty.</p>
-                ) : (
-                  <>
-                    <div className="space-y-3 mb-4">
-                      {cart.map((item) => (
-                        <div key={item.id} className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium text-gray-900">{item.name}</p>
-                            <p className="text-sm text-gray-500">
-                              {formatPrice(item.price)} × {item.quantity}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center"
-                            >−</button>
-                            <span className="w-4 text-center">{item.quantity}</span>
-                            <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center"
-                            >+</button>
-                          </div>
-                        </div>
-                      ))}
+                <div className="space-y-3 mb-4">
+                  {cart.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-gray-900">{item.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {formatPrice(item.price)} × {item.quantity}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center"
+                        >−</button>
+                        <span className="w-4 text-center">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center"
+                        >+</button>
+                      </div>
                     </div>
-
-                    <div className="border-t pt-4 mb-4 flex justify-between font-bold text-lg">
-                      <span>Total</span>
-                      <span>{formatPrice(total)}</span>
-                    </div>
-
-                    <button
-                      onClick={() => setCheckoutStep('payment')}
-                      className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg"
-                    >
-                      Continue to Payment
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-
-            {checkoutStep === 'payment' && (
-              <>
-                <div className="flex justify-between items-center mb-6">
-                  <button
-                    onClick={() => setCheckoutStep('cart')}
-                    className="text-gray-400 text-sm"
-                  >← Back</button>
-                  <h2 className="text-lg font-bold">How do you want to pay?</h2>
-                  <button onClick={() => setShowCart(false)} className="text-gray-400 text-2xl">✕</button>
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  <button
-                    onClick={() => setPaymentMethod('cash')}
-                    className={`w-full border-2 rounded-xl p-4 flex items-center gap-4 transition-colors ${
-                      paymentMethod === 'cash'
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200'
-                    }`}
-                  >
-                    <span className="text-3xl">💵</span>
-                    <div className="text-left">
-                      <p className="font-semibold text-gray-900">Pay with Cash</p>
-                      <p className="text-sm text-gray-500">A waiter will come to your table</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setPaymentMethod('card')}
-                    className={`w-full border-2 rounded-xl p-4 flex items-center gap-4 transition-colors ${
-                      paymentMethod === 'card'
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200'
-                    }`}
-                  >
-                    <span className="text-3xl">💳</span>
-                    <div className="text-left">
-                      <p className="font-semibold text-gray-900">Pay with Card</p>
-                      <p className="text-sm text-gray-500">Pay securely by card</p>
-                    </div>
-                  </button>
+                  ))}
                 </div>
 
                 <div className="border-t pt-4 mb-4 flex justify-between font-bold text-lg">
@@ -416,17 +357,67 @@ export default function MenuPage({
                 </div>
 
                 <button
-                  onClick={placeOrder}
-                  disabled={!paymentMethod || ordering}
-                  className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-40"
+                  onClick={async () => {
+                    if (!session || cart.length === 0) return;
+                    setOrdering(true);
+                    try {
+                      const res = await fetch('/api/orders', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          sessionId: session.id,
+                          restaurantId: table!.restaurant_id,
+                          items: cart,
+                          seatId: seat?.id,
+                        }),
+                      });
+                      if (!res.ok) throw new Error('Order failed');
+                      clearCart();
+                      setShowCart(false);
+                      setOrderSuccess(true);
+                      await refetchSummary();
+                      setTimeout(() => setOrderSuccess(false), 4000);
+                    } catch {
+                      alert('Could not place order. Please try again.');
+                    } finally {
+                      setOrdering(false);
+                    }
+                  }}
+                  disabled={ordering}
+                  className="w-full bg-gray-800 text-white py-3 rounded-xl font-semibold text-base mb-3 disabled:opacity-40"
                 >
-                  {ordering ? 'Placing order...' : 'Place Order'}
+                  {ordering ? 'Placing...' : 'Place Order'}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowCart(false);
+                    setShowPaymentModal(true);
+                  }}
+                  className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg"
+                >
+                  Checkout
                 </button>
               </>
             )}
-
           </div>
         </div>
+      )}
+
+      {showPaymentModal && summary && seat && (
+        <PaymentModal
+          summary={summary}
+          currentSeatId={seat.id}
+          currentSeatCode={seat.seat_code}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={() => {
+            setShowPaymentModal(false);
+            clearCart();
+            setOrderSuccess(true);
+            refetchSummary();
+            setTimeout(() => setOrderSuccess(false), 5000);
+          }}
+        />
       )}
     </div>
   );
