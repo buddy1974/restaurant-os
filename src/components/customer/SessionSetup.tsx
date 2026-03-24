@@ -18,6 +18,9 @@ export default function SessionSetup({
   loading,
 }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showCodeInput, setShowCodeInput] = useState(false);
+  const [groupCodeInput, setGroupCodeInput] = useState('');
+  const [codeError, setCodeError] = useState('');
 
   if (showConfirm) {
     return (
@@ -27,10 +30,11 @@ export default function SessionSetup({
             <p className="text-4xl mb-3">⚠️</p>
             <h2 className="text-lg font-bold text-gray-900">Just to confirm</h2>
             <p className="text-sm text-gray-500 mt-2">
-              You are responsible for everything you order in this session.
+              You will create your own private session.
+              <strong> You are the only one paying for yourself.</strong>
             </p>
             <p className="text-sm text-gray-400 mt-3 bg-yellow-50 border border-yellow-100 rounded-lg p-3">
-              If someone else is paying for you, go back and ask them for the <strong>group code</strong>.
+              ⚠️ If a friend or family member is paying for you, tap <strong>Go back</strong> and select <strong>&ldquo;I have a group code&rdquo;</strong> instead.
             </p>
           </div>
           <div className="space-y-3">
@@ -80,17 +84,59 @@ export default function SessionSetup({
             </button>
 
             {/* Has a group code */}
-            <button
-              onClick={() => window.location.href = `?join=true`}
-              disabled={loading}
-              className="w-full border-2 border-gray-100 hover:border-blue-400 hover:bg-blue-50 rounded-xl p-4 flex items-center gap-4 text-left transition-all disabled:opacity-50"
-            >
-              <span className="text-4xl">🎟️</span>
-              <div>
-                <p className="font-bold text-gray-900">I have a group code</p>
-                <p className="text-sm text-gray-400">Someone else is paying — join their group</p>
+            {!showCodeInput ? (
+              <button
+                onClick={() => setShowCodeInput(true)}
+                disabled={loading}
+                className="w-full border-2 border-gray-100 hover:border-blue-400 hover:bg-blue-50 rounded-xl p-4 flex items-center gap-4 text-left transition-all disabled:opacity-50"
+              >
+                <span className="text-4xl">🎟️</span>
+                <div>
+                  <p className="font-bold text-gray-900">I have a group code</p>
+                  <p className="text-sm text-gray-400">Someone else is paying — enter their code</p>
+                </div>
+              </button>
+            ) : (
+              <div className="border-2 border-blue-200 bg-blue-50 rounded-xl p-4">
+                <p className="font-bold text-gray-900 mb-3">Enter group code</p>
+                <input
+                  type="text"
+                  value={groupCodeInput}
+                  onChange={(e) => setGroupCodeInput(e.target.value.toUpperCase())}
+                  placeholder="e.g. T1-LEMON"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono uppercase mb-2 bg-white"
+                  autoFocus
+                />
+                {codeError && (
+                  <p className="text-xs text-red-500 mb-2">{codeError}</p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowCodeInput(false);
+                      setGroupCodeInput('');
+                      setCodeError('');
+                    }}
+                    className="flex-1 border border-gray-200 text-gray-500 py-2 rounded-lg text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!groupCodeInput.trim()) {
+                        setCodeError('Please enter a group code');
+                        return;
+                      }
+                      const slug = window.location.pathname.split('/')[1];
+                      window.location.href = `/${slug}/join/${groupCodeInput.trim()}`;
+                    }}
+                    className="flex-1 bg-blue-500 text-white py-2 rounded-lg text-sm font-semibold"
+                  >
+                    Join Group →
+                  </button>
+                </div>
               </div>
-            </button>
+            )}
 
             {/* I am host */}
             <button

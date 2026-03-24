@@ -21,6 +21,7 @@ export default function GuestMenuPage({
 }) {
   const { slug, sessionId, seatId } = React.use(params);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [tableNumber, setTableNumber] = useState(0);
   const [seatCode, setSeatCode] = useState<string | null>(null);
   const [hostSeatCode, setHostSeatCode] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -47,6 +48,25 @@ export default function GuestMenuPage({
     }
     loadRestaurantId();
   }, [slug]);
+
+  // Get actual table number for waiter call
+  useEffect(() => {
+    async function getTableNumber() {
+      try {
+        const res = await fetch(`/api/staff/tables?slug=${slug}`);
+        const data = await res.json();
+        if (data.tables) {
+          const activeTable = data.tables.find(
+            (t: { session_id: string }) => t.session_id === sessionId
+          );
+          if (activeTable) setTableNumber((activeTable as { number: number }).number);
+        }
+      } catch (err) {
+        console.error('Failed to get table number', err);
+      }
+    }
+    getTableNumber();
+  }, [slug, sessionId]);
 
   // Auto-refresh summary every 15 seconds
   useEffect(() => {
@@ -229,7 +249,7 @@ export default function GuestMenuPage({
           summary={summary}
           currentSeatId={seatId}
           currentSeatCode={seatCode}
-          tableNumber={0}
+          tableNumber={tableNumber}
           restaurantId={restaurantId}
           sessionType="group"
           isHost={false}

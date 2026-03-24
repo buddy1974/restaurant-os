@@ -445,6 +445,15 @@ export default function MenuPage({
                     if (!session || cart.length === 0) return;
                     setOrdering(true);
                     try {
+                      // Verify session is still active
+                      const sessionCheck = await fetch(`/api/sessions?tableId=${table!.id}`);
+                      const sessionData = await sessionCheck.json();
+                      if (!sessionData.session || sessionData.session.id !== session.id) {
+                        localStorage.removeItem(`seat_${table!.id}`);
+                        window.location.reload();
+                        return;
+                      }
+
                       const res = await fetch('/api/orders', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
