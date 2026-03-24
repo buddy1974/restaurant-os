@@ -4,7 +4,7 @@ import { sql } from '@/lib/db';
 // POST — join a session and get assigned a seat code
 export async function POST(request: NextRequest) {
   try {
-    const { sessionId } = await request.json();
+    const { sessionId, isGuest } = await request.json();
 
     if (!sessionId) {
       return NextResponse.json(
@@ -38,10 +38,10 @@ export async function POST(request: NextRequest) {
 
     // Create the seat
     const [seat] = await sql`
-      INSERT INTO seats (session_id, seat_code)
-      VALUES (${sessionId}, ${seatCode})
+      INSERT INTO seats (session_id, seat_code, is_guest)
+      VALUES (${sessionId}, ${seatCode}, ${isGuest || false})
       ON CONFLICT (session_id, seat_code) DO NOTHING
-      RETURNING id, seat_code, session_id, joined_at
+      RETURNING id, seat_code, session_id, joined_at, is_guest
     `;
 
     const [currentSession] = await sql`
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const seats = await sql`
-      SELECT id, seat_code, joined_at, paid, payment_mode
+      SELECT id, seat_code, joined_at, paid, payment_mode, is_guest
       FROM seats
       WHERE session_id = ${sessionId}
       ORDER BY joined_at ASC

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useMenu } from '@/hooks/useMenu';
 import { useCart } from '@/hooks/useCart';
 import PaymentModal from '@/components/customer/PaymentModal';
+import GroupBillModal from '@/components/customer/GroupBillModal';
 import SessionSetup from '@/components/customer/SessionSetup';
 import JoiningGroup from '@/components/customer/JoiningGroup';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
@@ -44,11 +45,14 @@ export default function MenuPage({
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [seat, setSeat] = useState<{ id: string; seat_code: string } | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showGroupBill, setShowGroupBill] = useState(false);
   const [sessionType, setSessionType] = useState<'individual' | 'group' | null>(null);
   const [settingUpSession, setSettingUpSession] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [showJoiningScreen, setShowJoiningScreen] = useState(false);
   const [hostSeatCode, setHostSeatCode] = useState<string | null>(null);
+  const [groupCode, setGroupCode] = useState<string | null>(null);
+  const [showGroupCode, setShowGroupCode] = useState(false);
 
   const seatEmoji: Record<string, string> = {
     APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -99,12 +103,10 @@ export default function MenuPage({
         const data = await res.json();
 
         if (data.session) {
-          // Session exists — join it
           const activeSession = data.session;
           setSession(activeSession);
           setSessionType(activeSession.session_type);
 
-          // Check stored seat
           const storedSeatRaw = localStorage.getItem(`seat_${table!.id}`);
           if (storedSeatRaw) {
             const parsedSeat = JSON.parse(storedSeatRaw);
@@ -116,11 +118,10 @@ export default function MenuPage({
             }
           }
 
-          // Assign seat
           const seatRes = await fetch('/api/seats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: activeSession.id }),
+            body: JSON.stringify({ sessionId: activeSession.id, isGuest: false }),
           });
           const seatData = await seatRes.json();
           if (seatData.seat) {
@@ -137,7 +138,6 @@ export default function MenuPage({
             }
           }
         } else {
-          // No session — first person, needs to choose type
           setNeedsSetup(true);
         }
       } catch {
@@ -147,6 +147,14 @@ export default function MenuPage({
 
     loadSession();
   }, [table]);
+
+  // Load group code from localStorage for host
+  useEffect(() => {
+    if (table && sessionType === 'group') {
+      const stored = localStorage.getItem(`group_code_${table.id}`);
+      if (stored) setGroupCode(stored);
+    }
+  }, [table, sessionType]);
 
   async function handleSessionSetup(type: 'individual' | 'group') {
     if (!table) return;
@@ -171,13 +179,26 @@ export default function MenuPage({
       const seatRes = await fetch('/api/seats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: activeSession.id }),
+        body: JSON.stringify({ sessionId: activeSession.id, isGuest: false }),
       });
       const seatData = await seatRes.json();
+
       if (seatData.seat) {
         const seatWithSession = { ...seatData.seat, session_id: activeSession.id };
         setSeat(seatWithSession);
         localStorage.setItem(`seat_${table.id}`, JSON.stringify(seatWithSession));
+
+        // If group host, generate and store group code
+        if (type === 'group') {
+          const code = `T${table.number}-${seatData.seat.seat_code}`;
+          await fetch('/api/sessions', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: activeSession.id, groupCode: code }),
+          });
+          setGroupCode(code);
+          localStorage.setItem(`group_code_${table.id}`, code);
+        }
       }
     } catch {
       setError('Could not start session. Please try again.');
@@ -216,7 +237,8 @@ export default function MenuPage({
       <SessionSetup
         tableLabel={table.label || `Table ${table.number}`}
         restaurantName={table.restaurant_name}
-        onSelect={handleSessionSetup}
+        onSelectIndividual={() => handleSessionSetup('individual')}
+        onSelectHost={() => handleSessionSetup('group')}
         loading={settingUpSession}
       />
     );
@@ -258,6 +280,14 @@ export default function MenuPage({
                   {seatEmoji[seat.seat_code] || '🪑'} {seat.seat_code}
                 </p>
               </div>
+            )}
+            {sessionType === 'group' && isHost && groupCode && (
+              <button
+                onClick={() => setShowGroupCode(true)}
+                className="bg-blue-500 text-white px-3 py-2 rounded-full text-xs font-medium"
+              >
+                👥 Group Code
+              </button>
             )}
             <button
               onClick={() => setShowCart(true)}
@@ -432,17 +462,58 @@ export default function MenuPage({
                   {ordering ? 'Placing...' : 'Place Order'}
                 </button>
 
-                <button
-                  onClick={() => {
-                    setShowCart(false);
-                    setShowPaymentModal(true);
-                  }}
-                  className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg"
-                >
-                  Checkout
-                </button>
+                {sessionType === 'group' && isHost ? (
+                  <button
+                    onClick={() => {
+                      setShowCart(false);
+                      refetchSummary();
+                      setShowGroupBill(true);
+                    }}
+                    className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg mt-2"
+                  >
+                    👑 View Group Bill
+                  </button>
+                ) : sessionType === 'individual' ? (
+                  <button
+                    onClick={() => {
+                      setShowCart(false);
+                      refetchSummary();
+                      setShowPaymentModal(true);
+                    }}
+                    className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg mt-2"
+                  >
+                    Checkout & Pay
+                  </button>
+                ) : null}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Group code modal */}
+      {showGroupCode && groupCode && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+            <h2 className="font-bold text-lg mb-2">Your Group Code</h2>
+            <p className="text-sm text-gray-400 mb-4">
+              Show this to your guests so they can join
+            </p>
+            <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-6 mb-4">
+              <p className="text-3xl font-black text-orange-600 tracking-widest">{groupCode}</p>
+            </div>
+            <p className="text-xs text-gray-400 mb-2">Guests go to:</p>
+            <p className="text-xs font-mono bg-gray-100 rounded p-2 mb-4 break-all">
+              {typeof window !== 'undefined'
+                ? `${window.location.origin}/${slug}/join/${groupCode}`
+                : `/${slug}/join/${groupCode}`}
+            </p>
+            <button
+              onClick={() => setShowGroupCode(false)}
+              className="w-full bg-orange-500 text-white py-3 rounded-xl font-semibold"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -470,6 +541,22 @@ export default function MenuPage({
           onClose={() => setShowPaymentModal(false)}
           onSuccess={() => {
             setShowPaymentModal(false);
+            clearCart();
+            setOrderSuccess(true);
+            refetchSummary();
+            setTimeout(() => setOrderSuccess(false), 5000);
+          }}
+        />
+      )}
+
+      {showGroupBill && summary && seat && (
+        <GroupBillModal
+          summary={summary}
+          hostSeatCode={seat.seat_code}
+          sessionId={session!.id}
+          onClose={() => setShowGroupBill(false)}
+          onSuccess={() => {
+            setShowGroupBill(false);
             clearCart();
             setOrderSuccess(true);
             refetchSummary();

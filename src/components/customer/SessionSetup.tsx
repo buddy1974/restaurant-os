@@ -1,73 +1,113 @@
 'use client';
 
+import { useState } from 'react';
+
 interface Props {
   tableLabel: string;
   restaurantName: string;
-  onSelect: (sessionType: 'individual' | 'group') => void;
+  onSelectIndividual: () => void;
+  onSelectHost: () => void;
   loading?: boolean;
 }
 
 export default function SessionSetup({
   tableLabel,
   restaurantName,
-  onSelect,
+  onSelectIndividual,
+  onSelectHost,
   loading,
 }: Props) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  if (showConfirm) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="text-center mb-6">
+            <p className="text-4xl mb-3">⚠️</p>
+            <h2 className="text-lg font-bold text-gray-900">Just to confirm</h2>
+            <p className="text-sm text-gray-500 mt-2">
+              You are responsible for everything you order in this session.
+            </p>
+            <p className="text-sm text-gray-400 mt-3 bg-yellow-50 border border-yellow-100 rounded-lg p-3">
+              If someone else is paying for you, go back and ask them for the <strong>group code</strong>.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <button
+              onClick={onSelectIndividual}
+              disabled={loading}
+              className="w-full bg-orange-500 text-white py-3 rounded-xl font-semibold disabled:opacity-50"
+            >
+              Yes, I pay for myself
+            </button>
+            <button
+              onClick={() => setShowConfirm(false)}
+              className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl font-medium"
+            >
+              ← Go back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
-
-        {/* Restaurant name */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">{restaurantName}</h1>
           <p className="text-gray-400 mt-1">{tableLabel}</p>
         </div>
 
-        {/* Welcome card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 text-center mb-1">
-            Welcome 👋
-          </h2>
-          <p className="text-sm text-gray-400 text-center mb-6">
-            How are you dining today?
-          </p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+          <h2 className="text-lg font-bold text-gray-900 text-center mb-1">Welcome 👋</h2>
+          <p className="text-sm text-gray-400 text-center mb-6">How are you paying today?</p>
 
           <div className="space-y-3">
-            {/* Individual */}
+            {/* Just me */}
             <button
-              onClick={() => onSelect('individual')}
+              onClick={() => setShowConfirm(true)}
               disabled={loading}
               className="w-full border-2 border-gray-100 hover:border-orange-400 hover:bg-orange-50 rounded-xl p-4 flex items-center gap-4 text-left transition-all disabled:opacity-50"
             >
               <span className="text-4xl">👤</span>
               <div>
-                <p className="font-bold text-gray-900">Just me</p>
-                <p className="text-sm text-gray-400">
-                  Individual bill — I pay for myself
-                </p>
+                <p className="font-bold text-gray-900">I pay for myself</p>
+                <p className="text-sm text-gray-400">My own bill — I order and I pay</p>
               </div>
             </button>
 
-            {/* Group */}
+            {/* Has a group code */}
             <button
-              onClick={() => onSelect('group')}
+              onClick={() => window.location.href = `?join=true`}
+              disabled={loading}
+              className="w-full border-2 border-gray-100 hover:border-blue-400 hover:bg-blue-50 rounded-xl p-4 flex items-center gap-4 text-left transition-all disabled:opacity-50"
+            >
+              <span className="text-4xl">🎟️</span>
+              <div>
+                <p className="font-bold text-gray-900">I have a group code</p>
+                <p className="text-sm text-gray-400">Someone else is paying — join their group</p>
+              </div>
+            </button>
+
+            {/* I am host */}
+            <button
+              onClick={onSelectHost}
               disabled={loading}
               className="w-full border-2 border-gray-100 hover:border-orange-400 hover:bg-orange-50 rounded-xl p-4 flex items-center gap-4 text-left transition-all disabled:opacity-50"
             >
-              <span className="text-4xl">👨‍👩‍👧</span>
+              <span className="text-4xl">👑</span>
               <div>
-                <p className="font-bold text-gray-900">We are a group</p>
-                <p className="text-sm text-gray-400">
-                  Shared table — flexible payment at the end
-                </p>
+                <p className="font-bold text-gray-900">I pay for the group</p>
+                <p className="text-sm text-gray-400">Start a group — others join with your code</p>
               </div>
             </button>
           </div>
         </div>
 
-        <p className="text-xs text-gray-300 text-center">
-          Scan the QR code again to restart
-        </p>
+        <p className="text-xs text-gray-300 text-center">Scan the QR code again to restart</p>
       </div>
     </div>
   );

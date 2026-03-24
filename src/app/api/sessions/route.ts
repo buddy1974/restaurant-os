@@ -1,14 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
-// GET — fetch active session for a table
+// GET — fetch active session for a table, or by group code
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tableId = searchParams.get('tableId');
+  const groupCode = searchParams.get('groupCode');
+
+  if (groupCode) {
+    try {
+      const [session] = await sql`
+        SELECT id, table_id, restaurant_id, status, session_type, started_at, host_seat_id, group_code
+        FROM table_sessions
+        WHERE group_code = ${groupCode}
+          AND status = 'active'
+        LIMIT 1
+      `;
+      return NextResponse.json({ session: session || null });
+    } catch (error) {
+      console.error('GET /api/sessions (groupCode) error:', error);
+      return NextResponse.json({ error: 'Failed to fetch session' }, { status: 500 });
+    }
+  }
 
   if (!tableId) {
     return NextResponse.json(
-      { error: 'tableId is required' },
+      { error: 'tableId or groupCode is required' },
       { status: 400 }
     );
   }
@@ -35,16 +52,24 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { sessionId, newHostSeatId } = await request.json();
-    await sql`
-      UPDATE table_sessions
-      SET host_seat_id = ${newHostSeatId}
-      WHERE id = ${sessionId}
-    `;
+    const { sessionId, groupCode, newHostSeatId } = await request.json();
+
+    if (groupCode !== undefined) {
+      await sql`
+        UPDATE table_sessions SET group_code = ${groupCode} WHERE id = ${sessionId}
+      `;
+    }
+
+    if (newHostSeatId !== undefined) {
+      await sql`
+        UPDATE table_sessions SET host_seat_id = ${newHostSeatId} WHERE id = ${sessionId}
+      `;
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('PATCH /api/sessions error:', error);
-    return NextResponse.json({ error: 'Failed to transfer host' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update session' }, { status: 500 });
   }
 }
 
