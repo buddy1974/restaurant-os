@@ -38,7 +38,7 @@ export default function AdminPage({
   const { slug } = React.use(params);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'items' | 'categories'>('items');
+  const [activeTab, setActiveTab] = useState<'items' | 'categories' | 'tables'>('items');
   const [loading, setLoading] = useState(true);
 
   // Item form
@@ -49,6 +49,21 @@ export default function AdminPage({
   // Category form
   const [showCatForm, setShowCatForm] = useState(false);
   const [catName, setCatName] = useState('');
+
+  // Tables
+  interface TableRow {
+    id: string;
+    number: number;
+    label: string;
+    status: string;
+    qr_code_url: string | null;
+  }
+
+  const [tables, setTables] = useState<TableRow[]>([]);
+  const [newTableNumber, setNewTableNumber] = useState('');
+  const [newTableLabel, setNewTableLabel] = useState('');
+  const [addingTable, setAddingTable] = useState(false);
+  const [qrLoading, setQrLoading] = useState<string | null>(null);
 
   const fetchMenu = useCallback(async () => {
     try {
@@ -66,6 +81,68 @@ export default function AdminPage({
   useEffect(() => {
     fetchMenu();
   }, [fetchMenu]);
+
+  const fetchTables = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/tables?slug=${slug}`);
+      const data = await res.json();
+      setTables(data.tables || []);
+    } catch (err) {
+      console.error('Failed to fetch tables', err);
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    if (activeTab === 'tables') fetchTables();
+  }, [activeTab, fetchTables]);
+
+  async function addTable() {
+    if (!newTableNumber) return;
+    setAddingTable(true);
+    try {
+      await fetch('/api/admin/tables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug,
+          number: parseInt(newTableNumber),
+          label: newTableLabel || `Table ${newTableNumber}`,
+        }),
+      });
+      setNewTableNumber('');
+      setNewTableLabel('');
+      fetchTables();
+    } catch (err) {
+      console.error('Failed to add table', err);
+    } finally {
+      setAddingTable(false);
+    }
+  }
+
+  async function deleteTable(id: string) {
+    if (!confirm('Delete this table?')) return;
+    await fetch(`/api/admin/tables?id=${id}`, { method: 'DELETE' });
+    fetchTables();
+  }
+
+  async function downloadQR(tableNumber: number) {
+    setQrLoading(String(tableNumber));
+    try {
+      const baseUrl = window.location.origin;
+      const url = `/api/admin/qr?slug=${slug}&table=${tableNumber}&baseUrl=${encodeURIComponent(baseUrl)}`;
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `table-${tableNumber}-qr.png`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.error('Failed to download QR', err);
+    } finally {
+      setQrLoading(null);
+    }
+  }
 
   function openAddItem() {
     setEditingItem(null);
@@ -177,7 +254,7 @@ export default function AdminPage({
 
       {/* Tabs */}
       <div className="bg-white border-b px-4 flex gap-4">
-        {(['items', 'categories'] as const).map((tab) => (
+        {(['items', 'categories', 'tables'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -276,6 +353,104 @@ export default function AdminPage({
                 </div>
               );
             })}
+          </>
+        )}
+
+        {/* TABLES TAB */}
+        {activeTab === 'tables' && (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-semibold text-gray-700">Tables ({tables.length})</h2>
+            </div>
+
+            {/* Add table form */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Add New Table</p>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={newTableNumber}
+                  onChange={(e) => setNewTableNumber(e.target.value)}
+                  placeholder="Table #"
+                  className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+                <input
+                  value={newTableLabel}
+                  onChange={(e) => setNewTableLabel(e.target.value)}
+                  placeholder="Label (optional)"
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={addTable}
+                  disabled={addingTable || !newTableNumber}
+                  className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {/* Tables list */}
+            <div className="space-y-2">
+              {tables.map((table) => (
+                <div
+                  key={table.id}
+                  className="bg-white rounded-xl border border-gray-200 p-4"
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-gray-900">Table {table.number}</p>
+                      <p className="text-xs text-gray-400">{table.label}</p>
+                      <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${
+                        table.status === 'free'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-orange-100 text-orange-700'
+                      }`}>
+                        {table.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* QR Preview */}
+                      <img
+                        src={`/api/admin/qr?slug=${slug}&table=${table.number}&baseUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}`}
+                        alt={`QR Table ${table.number}`}
+                        className="w-16 h-16 rounded-lg border border-gray-100"
+                      />
+
+                      {/* Download button */}
+                      <button
+                        onClick={() => downloadQR(table.number)}
+                        disabled={qrLoading === String(table.number)}
+                        className="bg-gray-900 text-white px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-50 flex flex-col items-center gap-0.5"
+                      >
+                        {qrLoading === String(table.number) ? (
+                          <span>...</span>
+                        ) : (
+                          <>
+                            <span>⬇</span>
+                            <span>QR</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Delete button */}
+                      <button
+                        onClick={() => deleteTable(table.id)}
+                        className="border border-red-100 text-red-400 px-3 py-2 rounded-lg text-xs font-medium hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* QR URL */}
+                  <p className="text-xs font-mono text-gray-300 mt-2 truncate">
+                    {typeof window !== 'undefined' ? window.location.origin : ''}/{slug}/menu/{table.number}
+                  </p>
+                </div>
+              ))}
+            </div>
           </>
         )}
 
