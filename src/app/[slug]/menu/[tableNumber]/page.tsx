@@ -49,7 +49,6 @@ export default function MenuPage({
   const [needsSetup, setNeedsSetup] = useState(false);
   const [showJoiningScreen, setShowJoiningScreen] = useState(false);
   const [hostSeatCode, setHostSeatCode] = useState<string | null>(null);
-  const [isHost, setIsHost] = useState(false);
 
   const seatEmoji: Record<string, string> = {
     APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -65,6 +64,7 @@ export default function MenuPage({
   const { cart, addItem, removeItem, updateQuantity, clearCart, total, itemCount } =
     useCart(session?.id || null);
   const { summary, refetch: refetchSummary } = useSessionSummary(session?.id || null);
+  const isHost = summary ? seat?.id === summary.hostSeatId : false;
 
   // Step 1 — load table
   useEffect(() => {
@@ -129,7 +129,6 @@ export default function MenuPage({
             const hostSeat = summaryData.seats?.find((s: { id: string }) => s.id === summaryData.hostSeatId);
             if (hostSeat) {
               setHostSeatCode(hostSeat.seat_code);
-              setIsHost(seatData.seat.id === summaryData.hostSeatId);
               setShowJoiningScreen(true);
             }
           }
@@ -202,7 +201,7 @@ export default function MenuPage({
         tableLabel={table.label || `Table ${table.number}`}
         hostSeatCode={hostSeatCode}
         yourSeatCode={seat.seat_code}
-        isHost={isHost}
+        isHost={summary ? seat.id === summary.hostSeatId : seat.seat_code === hostSeatCode}
         onContinue={() => setShowJoiningScreen(false)}
       />
     );
@@ -459,7 +458,6 @@ export default function MenuPage({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ sessionId: summary.sessionId, newHostSeatId }),
             });
-            setIsHost(false);
             setShowPaymentModal(false);
             await refetchSummary();
           }}
