@@ -95,36 +95,42 @@ Seat codes: fruit-based (APPLE, MANGO, BANANA, PINEAPPLE, STRAWBERRY, ORANGE, GR
 Test URL when running locally: http://localhost:3000/menu/1
 
 ## Current Build Phase
-PHASE 0 — Foundation ✅ Complete
-PHASE 1 — Customer Flow ✅ Complete
-PHASE 2 — Staff Dashboard ✅ Complete
-PHASE 3 — Admin Panel ✅ Complete
-PHASE 4 — Seat System ✅ Complete
+ALL PHASES COMPLETE ✅
 
-## What Was Just Built
-- Fruit-based seat codes (20 fruits)
-- Session type system (individual vs group)
-- SessionSetup screen shown on first scan
-- PaymentModal with 4 modes (unit, group, split_equal, split_select)
-- Payment modes filtered by session type
-- Telegram notifications on every order
-- Staff sees session type badge (👤 / 👨‍👩‍👧)
+## What Is Built and Working
+- Individual session: scan QR → order → pay → done
+- Group session: host scans → generates QR code → guests join → order freely → host pays group bill
+- Real-time order status panel (sticky bottom bar)
+- AI upsell suggestions from menu using Anthropic API
+- Call waiter button with reason selection → Telegram notification
+- Telegram notifications: new orders, session start, waiter calls, payment confirmed
+- Staff dashboard: tables grouped by seat with order details
+- Admin panel: add/edit/delete menu items and categories
+- QR code generation for group sessions
+- Payment confirmation with full receipt
 
 ## Next Steps
-- Test session type flow end to end on live site
 - Phase 5: Stripe card payments
 - Phase 6: Multi-tenant onboarding
 
 ## Live URLs
-Customer: https://restaurant-os-one.vercel.app/demo/menu/1
+Customer (individual or host): https://restaurant-os-one.vercel.app/demo/menu/[1-6]
+Guest join: https://restaurant-os-one.vercel.app/demo/join/[groupCode]
 Staff: https://restaurant-os-one.vercel.app/demo/staff
 Admin: https://restaurant-os-one.vercel.app/demo/admin
 
 ## Key Files
-- src/app/[slug]/menu/[tableNumber]/page.tsx — customer menu
+- src/app/[slug]/menu/[tableNumber]/page.tsx — customer menu (host + individual)
+- src/app/[slug]/guest/[sessionId]/[seatId]/page.tsx — guest menu (no pay)
+- src/app/[slug]/join/[groupCode]/page.tsx — group join page
 - src/components/customer/SessionSetup.tsx — dining type selector
-- src/components/customer/PaymentModal.tsx — payment modes
-- src/app/(staff)/[slug]/staff/page.tsx — staff dashboard
-- src/app/(admin)/[slug]/admin/page.tsx — admin panel
+- src/components/customer/PaymentModal.tsx — individual payment modes
+- src/components/customer/GroupBillModal.tsx — host group bill payment
+- src/components/customer/OrderStatusPanel.tsx — sticky order status + AI upsell + call waiter
+- src/components/customer/GroupQRCode.tsx — scannable QR for group join
+- src/app/api/sessions/route.ts — session management (tableId + groupCode lookup)
+- src/app/api/sessions/pay/route.ts — payment processing + Telegram notification
+- src/app/api/ai-suggest/route.ts — Anthropic API upsell suggestions
+- src/app/api/call-waiter/route.ts — Telegram waiter call
 - src/lib/telegram.ts — notifications
 - src/lib/db.ts — database client
