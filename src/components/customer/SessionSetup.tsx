@@ -118,6 +118,14 @@ export default function SessionSetup({
         </div>
 
         <p className="text-xs text-gray-300 text-center">Scan the QR code again to restart</p>
+        <a
+          href="https://maxpromo.digital"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-gray-300 hover:text-orange-400 transition-colors mt-2 block text-center"
+        >
+          Powered by maxpromo.digital
+        </a>
       </div>
     </div>
   );

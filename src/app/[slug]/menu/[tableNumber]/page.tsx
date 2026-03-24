@@ -607,6 +607,17 @@ export default function MenuPage({
           }}
         />
       )}
+
+      <div className="text-center py-6 pb-32">
+        <a
+          href="https://maxpromo.digital"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-gray-300 hover:text-orange-400 transition-colors"
+        >
+          Powered by maxpromo.digital
+        </a>
+      </div>
     </div>
   );
 }
