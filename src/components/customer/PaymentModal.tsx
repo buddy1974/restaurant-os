@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { SessionSummary, SeatSummary } from '@/hooks/useSessionSummary';
+import StripeCheckout from '@/components/customer/StripeCheckout';
 
 const seatEmoji: Record<string, string> = {
   APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -50,6 +51,7 @@ export default function PaymentModal({
   const [selectedSeats, setSelectedSeats] = useState<string[]>([currentSeatId]);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showStripe, setShowStripe] = useState(false);
 
   const formatPrice = (p: number) =>
     new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(Number(p));
@@ -381,7 +383,13 @@ export default function PaymentModal({
                 </div>
 
                 <button
-                  onClick={() => setStep('confirm')}
+                  onClick={() => {
+                    if (paymentMethod === 'card') {
+                      setShowStripe(true);
+                    } else {
+                      setStep('confirm');
+                    }
+                  }}
                   disabled={!paymentMethod}
                   className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold disabled:opacity-40"
                 >
@@ -444,6 +452,29 @@ export default function PaymentModal({
           </>
         )}
       </div>
+
+      {showStripe && (
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end bg-black/50">
+          <div className="bg-white rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-lg">Card Payment</h2>
+              <button onClick={() => setShowStripe(false)} className="text-gray-400 text-2xl">✕</button>
+            </div>
+            <StripeCheckout
+              amount={getPayingAmount()}
+              sessionId={summary.sessionId}
+              seatIds={getPayingSeatIds()}
+              paymentMode={paymentMode || 'unit'}
+              tableNumber={0}
+              onSuccess={() => {
+                setShowStripe(false);
+                onSuccess();
+              }}
+              onCancel={() => setShowStripe(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
