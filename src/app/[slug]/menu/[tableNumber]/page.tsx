@@ -202,13 +202,21 @@ export default function MenuPage({
         // If group host, generate and store group code
         if (type === 'group') {
           const code = `T${table.number}-${seatData.seat.seat_code}`;
-          await fetch('/api/sessions', {
+          const patchRes = await fetch('/api/sessions', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: activeSession.id, groupCode: code }),
+            body: JSON.stringify({
+              sessionId: activeSession.id,
+              groupCode: code,
+            }),
           });
+          const patchData = await patchRes.json();
+          console.log('Group code PATCH response:', patchData);
+          console.log('Group code saved:', code, 'for session:', activeSession.id);
           setGroupCode(code);
           localStorage.setItem(`group_code_${table.id}`, code);
+          const storedCode = localStorage.getItem(`group_code_${table.id}`);
+          console.log('Stored group code in localStorage:', storedCode);
         }
       }
     } catch {

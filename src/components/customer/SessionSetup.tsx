@@ -17,45 +17,9 @@ export default function SessionSetup({
   onSelectHost,
   loading,
 }: Props) {
-  const [showConfirm, setShowConfirm] = useState(false);
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [groupCodeInput, setGroupCodeInput] = useState('');
   const [codeError, setCodeError] = useState('');
-
-  if (showConfirm) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="text-center mb-6">
-            <p className="text-4xl mb-3">⚠️</p>
-            <h2 className="text-lg font-bold text-gray-900">Just to confirm</h2>
-            <p className="text-sm text-gray-500 mt-2">
-              You will create your own private session.
-              <strong> You are the only one paying for yourself.</strong>
-            </p>
-            <p className="text-sm text-gray-400 mt-3 bg-yellow-50 border border-yellow-100 rounded-lg p-3">
-              ⚠️ If a friend or family member is paying for you, tap <strong>Go back</strong> and select <strong>&ldquo;I have a group code&rdquo;</strong> instead.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <button
-              onClick={onSelectIndividual}
-              disabled={loading}
-              className="w-full bg-orange-500 text-white py-3 rounded-xl font-semibold disabled:opacity-50"
-            >
-              Yes, I pay for myself
-            </button>
-            <button
-              onClick={() => setShowConfirm(false)}
-              className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl font-medium"
-            >
-              ← Go back
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
@@ -72,7 +36,7 @@ export default function SessionSetup({
           <div className="space-y-3">
             {/* Just me */}
             <button
-              onClick={() => setShowConfirm(true)}
+              onClick={() => onSelectIndividual()}
               disabled={loading}
               className="w-full border-2 border-gray-100 hover:border-orange-400 hover:bg-orange-50 rounded-xl p-4 flex items-center gap-4 text-left transition-all disabled:opacity-50"
             >
