@@ -13,6 +13,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const [sessionInfo] = await sql`
+      SELECT host_seat_id, payment_locked_by, payment_locked_at
+      FROM table_sessions
+      WHERE id = ${sessionId}
+    `;
+
     // Get all seats for this session
     const seats = await sql`
       SELECT id, seat_code, joined_at, paid, payment_mode
@@ -83,6 +89,8 @@ export async function GET(request: NextRequest) {
       grandTotal,
       unpaidTotal,
       seatCount: seats.length,
+      hostSeatId: sessionInfo ? (sessionInfo as { host_seat_id: string }).host_seat_id : null,
+      paymentLockedBy: sessionInfo ? (sessionInfo as { payment_locked_by: string }).payment_locked_by : null,
     });
   } catch (error) {
     console.error('GET /api/sessions/summary error:', error);

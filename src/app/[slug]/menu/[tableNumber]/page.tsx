@@ -5,6 +5,7 @@ import { useMenu } from '@/hooks/useMenu';
 import { useCart } from '@/hooks/useCart';
 import PaymentModal from '@/components/customer/PaymentModal';
 import SessionSetup from '@/components/customer/SessionSetup';
+import JoiningGroup from '@/components/customer/JoiningGroup';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
 
 interface TableData {
@@ -46,6 +47,9 @@ export default function MenuPage({
   const [sessionType, setSessionType] = useState<'individual' | 'group' | null>(null);
   const [settingUpSession, setSettingUpSession] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
+  const [showJoiningScreen, setShowJoiningScreen] = useState(false);
+  const [hostSeatCode, setHostSeatCode] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState(false);
 
   const seatEmoji: Record<string, string> = {
     APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -119,6 +123,15 @@ export default function MenuPage({
             const seatWithSession = { ...seatData.seat, session_id: activeSession.id };
             setSeat(seatWithSession);
             localStorage.setItem(`seat_${table!.id}`, JSON.stringify(seatWithSession));
+
+            const summaryRes = await fetch(`/api/sessions/summary?sessionId=${activeSession.id}`);
+            const summaryData = await summaryRes.json();
+            const hostSeat = summaryData.seats?.find((s: { id: string }) => s.id === summaryData.hostSeatId);
+            if (hostSeat) {
+              setHostSeatCode(hostSeat.seat_code);
+              setIsHost(seatData.seat.id === summaryData.hostSeatId);
+              setShowJoiningScreen(true);
+            }
           }
         } else {
           // No session — first person, needs to choose type
@@ -181,6 +194,19 @@ export default function MenuPage({
   const currency = table?.currency || 'EUR';
   const formatPrice = (p: number) =>
     new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(p);
+
+  if (showJoiningScreen && table && seat && hostSeatCode) {
+    return (
+      <JoiningGroup
+        restaurantName={table.restaurant_name}
+        tableLabel={table.label || `Table ${table.number}`}
+        hostSeatCode={hostSeatCode}
+        yourSeatCode={seat.seat_code}
+        isHost={isHost}
+        onContinue={() => setShowJoiningScreen(false)}
+      />
+    );
+  }
 
   if (needsSetup && table) {
     return (
@@ -424,6 +450,19 @@ export default function MenuPage({
           currentSeatId={seat.id}
           currentSeatCode={seat.seat_code}
           sessionType={sessionType || 'individual'}
+          isHost={isHost}
+          paymentLockedBy={summary.paymentLockedBy}
+          sessionId={summary.sessionId}
+          onTransferHost={async (newHostSeatId) => {
+            await fetch('/api/sessions', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId: summary.sessionId, newHostSeatId }),
+            });
+            setIsHost(false);
+            setShowPaymentModal(false);
+            await refetchSummary();
+          }}
           onClose={() => setShowPaymentModal(false)}
           onSuccess={() => {
             setShowPaymentModal(false);

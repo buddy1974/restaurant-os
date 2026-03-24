@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const [session] = await sql`
-      SELECT id, table_id, restaurant_id, status, session_type, started_at
+      SELECT id, table_id, restaurant_id, status, session_type, host_seat_id, payment_locked_by, started_at
       FROM table_sessions
       WHERE table_id = ${tableId}
         AND status = 'active'
@@ -30,6 +30,21 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch session' },
       { status: 500 }
     );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { sessionId, newHostSeatId } = await request.json();
+    await sql`
+      UPDATE table_sessions
+      SET host_seat_id = ${newHostSeatId}
+      WHERE id = ${sessionId}
+    `;
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('PATCH /api/sessions error:', error);
+    return NextResponse.json({ error: 'Failed to transfer host' }, { status: 500 });
   }
 }
 

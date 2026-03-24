@@ -20,6 +20,10 @@ interface Props {
   currentSeatId: string;
   currentSeatCode: string;
   sessionType: 'individual' | 'group';
+  isHost: boolean;
+  paymentLockedBy: string | null;
+  sessionId: string;
+  onTransferHost: (newHostSeatId: string) => void;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -29,6 +33,10 @@ export default function PaymentModal({
   currentSeatId,
   currentSeatCode,
   sessionType,
+  isHost,
+  paymentLockedBy,
+  sessionId,
+  onTransferHost,
   onClose,
   onSuccess,
 }: Props) {
@@ -142,6 +150,16 @@ export default function PaymentModal({
           <button onClick={onClose} className="text-gray-400 text-2xl">✕</button>
         </div>
 
+        {paymentLockedBy && paymentLockedBy !== currentSeatId && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 text-center">
+            <p className="text-2xl mb-1">⏳</p>
+            <p className="font-semibold text-yellow-800">Payment in progress</p>
+            <p className="text-sm text-yellow-600 mt-1">
+              Another seat is currently processing payment for this table. Please wait.
+            </p>
+          </div>
+        )}
+
         {/* STEP 1 — Mode Selection */}
         {step === 'mode' && (
           <div className="space-y-3">
@@ -178,44 +196,72 @@ export default function PaymentModal({
                   </div>
                 </button>
 
-                <button
-                  onClick={() => selectMode('group')}
-                  className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
-                >
-                  <span className="text-3xl">👨‍👩‍👧</span>
-                  <div>
-                    <p className="font-semibold text-gray-900">Pay for everyone</p>
-                    <p className="text-sm text-gray-400">
-                      Full table · {formatPrice(summary.unpaidTotal)}
-                    </p>
-                  </div>
-                </button>
+                {isHost && (
+                  <button
+                    onClick={() => selectMode('group')}
+                    className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                  >
+                    <span className="text-3xl">👨‍👩‍👧</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">Pay for everyone</p>
+                      <p className="text-sm text-gray-400">
+                        Full table · {formatPrice(summary.unpaidTotal)}
+                      </p>
+                    </div>
+                  </button>
+                )}
 
-                <button
-                  onClick={() => selectMode('split_equal')}
-                  className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
-                >
-                  <span className="text-3xl">➗</span>
-                  <div>
-                    <p className="font-semibold text-gray-900">Split equally</p>
-                    <p className="text-sm text-gray-400">
-                      {unpaidSeats.length} people · {formatPrice(splitEqualAmount)} each
-                    </p>
-                  </div>
-                </button>
+                {isHost && (
+                  <button
+                    onClick={() => selectMode('split_equal')}
+                    className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                  >
+                    <span className="text-3xl">➗</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">Split equally</p>
+                      <p className="text-sm text-gray-400">
+                        {unpaidSeats.length} people · {formatPrice(splitEqualAmount)} each
+                      </p>
+                    </div>
+                  </button>
+                )}
 
-                <button
-                  onClick={() => selectMode('split_select')}
-                  className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
-                >
-                  <span className="text-3xl">🤝</span>
-                  <div>
-                    <p className="font-semibold text-gray-900">Split with some</p>
-                    <p className="text-sm text-gray-400">
-                      Choose which seats to combine
+                {isHost && (
+                  <button
+                    onClick={() => selectMode('split_select')}
+                    className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                  >
+                    <span className="text-3xl">🤝</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">Split with some</p>
+                      <p className="text-sm text-gray-400">
+                        Choose which seats to combine
+                      </p>
+                    </div>
+                  </button>
+                )}
+
+                {isHost && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-xs text-gray-400 text-center mb-2">
+                      Want someone else to manage the bill?
                     </p>
+                    <div className="space-y-2">
+                      {summary.seats
+                        .filter((s) => s.id !== currentSeatId)
+                        .map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => onTransferHost(s.id)}
+                            className="w-full border border-gray-100 rounded-lg px-3 py-2 flex items-center gap-2 text-sm text-gray-600 hover:bg-gray-50"
+                          >
+                            <span>{seatEmoji[s.seat_code as string] || '🪑'}</span>
+                            <span>Transfer host to <strong>{s.seat_code as string}</strong></span>
+                          </button>
+                        ))}
+                    </div>
                   </div>
-                </button>
+                )}
               </>
             )}
           </div>

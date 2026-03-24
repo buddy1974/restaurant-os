@@ -33,6 +33,8 @@ export interface SessionSummary {
   grandTotal: number;
   unpaidTotal: number;
   seatCount: number;
+  hostSeatId: string | null;
+  paymentLockedBy: string | null;
 }
 
 export function useSessionSummary(sessionId: string | null) {

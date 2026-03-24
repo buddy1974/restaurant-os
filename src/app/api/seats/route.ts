@@ -44,6 +44,15 @@ export async function POST(request: NextRequest) {
       RETURNING id, seat_code, session_id, joined_at
     `;
 
+    const [currentSession] = await sql`
+      SELECT host_seat_id FROM table_sessions WHERE id = ${sessionId}
+    `;
+    if (!(currentSession as { host_seat_id: string | null }).host_seat_id) {
+      await sql`
+        UPDATE table_sessions SET host_seat_id = ${seat.id} WHERE id = ${sessionId}
+      `;
+    }
+
     return NextResponse.json({ seat }, { status: 201 });
   } catch (error) {
     console.error('POST /api/seats error:', error);

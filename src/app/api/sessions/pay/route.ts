@@ -3,7 +3,30 @@ import { sql } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    const { sessionId, seatIds, paymentMode, paymentMethod } = await request.json();
+    const { sessionId, seatIds, paymentMode, paymentMethod, seatId, action } = await request.json();
+
+    if (action === 'lock') {
+      await sql`
+        UPDATE table_sessions
+        SET payment_locked_by = ${seatId}, payment_locked_at = now()
+        WHERE id = ${sessionId} AND payment_locked_by IS NULL
+      `;
+      const [updated] = await sql`SELECT payment_locked_by FROM table_sessions WHERE id = ${sessionId}`;
+      const lockedBy = (updated as { payment_locked_by: string }).payment_locked_by;
+      return NextResponse.json({
+        success: lockedBy === seatId,
+        lockedBy
+      });
+    }
+
+    if (action === 'unlock') {
+      await sql`
+        UPDATE table_sessions
+        SET payment_locked_by = NULL, payment_locked_at = NULL
+        WHERE id = ${sessionId} AND payment_locked_by = ${seatId}
+      `;
+      return NextResponse.json({ success: true });
+    }
 
     if (!sessionId || !seatIds || !paymentMode || !paymentMethod) {
       return NextResponse.json(
