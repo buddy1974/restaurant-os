@@ -57,15 +57,15 @@ export async function POST(request: NextRequest) {
       const [item] = await sql`
         INSERT INTO menu_items (
           restaurant_id, category_id, name, description,
-          price, is_drink, is_popular, available, upsell_group
+          price, is_drink, is_popular, available, upsell_group, image_url
         )
         VALUES (
           ${restaurantId}, ${data.category_id}, ${data.name},
           ${data.description || null}, ${data.price},
           ${data.is_drink || false}, ${data.is_popular || false},
-          true, ${data.upsell_group || null}
+          true, ${data.upsell_group || null}, ${data.image_url || null}
         )
-        RETURNING id, category_id, name, description, price, is_drink, is_popular, available
+        RETURNING id, category_id, name, description, price, is_drink, is_popular, available, image_url
       `;
       return NextResponse.json({ item }, { status: 201 });
     }
@@ -89,7 +89,8 @@ export async function PATCH(request: NextRequest) {
           price = ${data.price},
           is_popular = ${data.is_popular || false},
           available = ${data.available},
-          category_id = ${data.category_id}
+          category_id = ${data.category_id},
+          image_url = ${data.image_url || null}
         WHERE id = ${id}
       `;
     }

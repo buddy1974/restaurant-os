@@ -19,6 +19,7 @@ interface MenuItem {
   is_popular: boolean;
   available: boolean;
   upsell_group?: string;
+  image_url?: string;
 }
 
 const emptyItem = {
@@ -28,6 +29,7 @@ const emptyItem = {
   category_id: '',
   is_popular: false,
   is_drink: false,
+  image_url: '',
 };
 
 export default function AdminPage({
@@ -45,6 +47,7 @@ export default function AdminPage({
   const [showItemForm, setShowItemForm] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [itemForm, setItemForm] = useState(emptyItem);
+  const [fetchingImage, setFetchingImage] = useState(false);
 
   // Category form
   const [showCatForm, setShowCatForm] = useState(false);
@@ -159,8 +162,25 @@ export default function AdminPage({
       category_id: item.category_id,
       is_popular: item.is_popular,
       is_drink: item.is_drink,
+      image_url: item.image_url || '',
     });
     setShowItemForm(true);
+  }
+
+  async function fetchItemImage(itemName: string) {
+    if (!itemName.trim()) return;
+    setFetchingImage(true);
+    try {
+      const res = await fetch(`/api/admin/image-search?query=${encodeURIComponent(itemName)}`);
+      const data = await res.json();
+      if (data.url) {
+        setItemForm((prev) => ({ ...prev, image_url: data.url }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch image', err);
+    } finally {
+      setFetchingImage(false);
+    }
   }
 
   async function saveItem() {
@@ -508,6 +528,11 @@ export default function AdminPage({
                 <input
                   value={itemForm.name}
                   onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
+                  onBlur={(e) => {
+                    if (e.target.value && !itemForm.image_url) {
+                      fetchItemImage(e.target.value);
+                    }
+                  }}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm"
                   placeholder="Item name"
                 />
@@ -521,6 +546,56 @@ export default function AdminPage({
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm"
                   placeholder="Short description"
                 />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 font-medium">Photo</label>
+                <div className="mt-1 space-y-2">
+                  {itemForm.image_url ? (
+                    <div className="relative">
+                      <img
+                        src={itemForm.image_url}
+                        alt="Item preview"
+                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                        onError={() => setItemForm({ ...itemForm, image_url: '' })}
+                      />
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => fetchItemImage(itemForm.name)}
+                          disabled={fetchingImage}
+                          className="bg-white text-gray-600 text-xs px-2 py-1 rounded-lg shadow border border-gray-200 disabled:opacity-50"
+                        >
+                          {fetchingImage ? '...' : '🔄 New photo'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setItemForm({ ...itemForm, image_url: '' })}
+                          className="bg-white text-red-400 text-xs px-2 py-1 rounded-lg shadow border border-red-100"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fetchItemImage(itemForm.name)}
+                        disabled={fetchingImage || !itemForm.name}
+                        className="flex-1 border border-dashed border-gray-300 rounded-lg py-3 text-sm text-gray-400 hover:border-orange-300 hover:text-orange-400 disabled:opacity-40 transition-colors"
+                      >
+                        {fetchingImage ? '⏳ Finding photo...' : '🔍 Auto-find photo'}
+                      </button>
+                    </div>
+                  )}
+                  <input
+                    value={itemForm.image_url}
+                    onChange={(e) => setItemForm({ ...itemForm, image_url: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-400"
+                    placeholder="Or paste image URL directly"
+                  />
+                </div>
               </div>
 
               <div>

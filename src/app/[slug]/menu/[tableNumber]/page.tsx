@@ -354,52 +354,63 @@ export default function MenuPage({
           return (
             <div
               key={item.id}
-              className="bg-white rounded-xl shadow-sm p-4 flex justify-between items-start"
+              className="bg-white rounded-xl shadow-sm overflow-hidden"
             >
-              <div className="flex-1 pr-4">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-medium text-gray-900">{item.name}</h3>
+              {/* Item image */}
+              {item.image_url && (
+                <div className="relative h-36 overflow-hidden">
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
                   {item.is_popular && (
-                    <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">
-                      Popular
+                    <span className="absolute top-2 left-2 text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full font-medium">
+                      ⭐ Popular
                     </span>
                   )}
                 </div>
-                {item.description && (
-                  <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                )}
-                <p className="text-orange-500 font-semibold mt-2">
-                  {formatPrice(item.price)}
-                </p>
-              </div>
+              )}
 
-              <div className="flex items-center gap-2">
-                {cartItem ? (
-                  <>
-                    <button
-                      onClick={() => updateQuantity(item.id, cartItem.quantity - 1)}
-                      className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center"
-                    >
-                      −
-                    </button>
-                    <span className="w-4 text-center font-medium">
-                      {cartItem.quantity}
-                    </span>
+              <div className="p-4 flex justify-between items-start">
+                <div className="flex-1 pr-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-gray-900">{item.name}</h3>
+                    {item.is_popular && !item.image_url && (
+                      <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">
+                        Popular
+                      </span>
+                    )}
+                  </div>
+                  {item.description && (
+                    <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                  )}
+                  <p className="text-orange-500 font-semibold mt-2">{formatPrice(item.price)}</p>
+                </div>
+
+                <div className="flex items-center gap-2 mt-1">
+                  {cartItem ? (
+                    <>
+                      <button
+                        onClick={() => updateQuantity(item.id, cartItem.quantity - 1)}
+                        className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center"
+                      >−</button>
+                      <span className="w-4 text-center font-medium">{cartItem.quantity}</span>
+                      <button
+                        onClick={() => addItem({ id: item.id, name: item.name, price: item.price, quantity: 1 })}
+                        className="w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center"
+                      >+</button>
+                    </>
+                  ) : (
                     <button
                       onClick={() => addItem({ id: item.id, name: item.name, price: item.price, quantity: 1 })}
                       className="w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center"
-                    >
-                      +
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => addItem({ id: item.id, name: item.name, price: item.price, quantity: 1 })}
-                    className="w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center"
-                  >
-                    +
-                  </button>
-                )}
+                    >+</button>
+                  )}
+                </div>
               </div>
             </div>
           );
