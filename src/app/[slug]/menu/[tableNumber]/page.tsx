@@ -7,7 +7,7 @@ import PaymentModal from '@/components/customer/PaymentModal';
 import GroupBillModal from '@/components/customer/GroupBillModal';
 import SessionSetup from '@/components/customer/SessionSetup';
 import JoiningGroup from '@/components/customer/JoiningGroup';
-import OrderStatusPanel from '@/components/customer/OrderStatusPanel';
+import Bestellboard from '@/components/customer/Bestellboard';
 import GroupQRCode from '@/components/customer/GroupQRCode';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
 
@@ -560,7 +560,7 @@ export default function MenuPage({
       )}
 
       {session && seat && table && (
-        <OrderStatusPanel
+        <Bestellboard
           summary={summary}
           currentSeatId={seat.id}
           currentSeatCode={seat.seat_code}

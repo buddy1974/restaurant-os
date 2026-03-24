@@ -44,20 +44,23 @@ export async function POST(request: NextRequest) {
 
     const orderedNames = orderedItems.map((i: { name: string }) => i.name).join(', ');
 
-    const prompt = `You are a restaurant upsell assistant. A customer has ordered: ${orderedNames}.
+    const prompt = `You are a friendly restaurant assistant helping a customer discover great food combinations.
 
-Available menu items they have NOT ordered yet:
+The customer has ordered: ${orderedNames}
+
+Available items they haven't tried yet:
 ${availableItems.map((i) => `- ${i.name} (${i.category}, €${i.price}): ${i.description || ''}`).join('\n')}
 
-Suggest exactly 2-3 items from the available list that would complement what they ordered.
-Focus on: drinks if no drink ordered, sides if no side ordered, desserts at end of meal.
-Be brief and friendly.
+Suggest exactly 3 items that would make their meal even better.
+Think about: missing drinks, perfect desserts, complementary sides.
+Be warm, enthusiastic, specific to what they ordered.
 
-Respond ONLY with valid JSON in this exact format, no other text:
+Respond ONLY with valid JSON, no other text:
 {
   "suggestions": [
-    {"id": "item-id-here", "name": "Item Name", "reason": "Short friendly reason under 8 words"},
-    {"id": "item-id-here", "name": "Item Name", "reason": "Short friendly reason under 8 words"}
+    {"id": "item-id", "name": "Item Name", "price": 0.00, "reason": "Friendly reason max 6 words", "emoji": "🍺"},
+    {"id": "item-id", "name": "Item Name", "price": 0.00, "reason": "Friendly reason max 6 words", "emoji": "🍰"},
+    {"id": "item-id", "name": "Item Name", "price": 0.00, "reason": "Friendly reason max 6 words", "emoji": "🥗"}
   ]
 }`;
 
@@ -80,12 +83,13 @@ Respond ONLY with valid JSON in this exact format, no other text:
 
     try {
       const parsed = JSON.parse(text);
-      const enriched = parsed.suggestions.map((s: { id: string; name: string; reason: string }) => {
+      const enriched = parsed.suggestions.map((s: { id: string; name: string; reason: string; emoji: string }) => {
         const fullItem = availableItems.find((i) => i.id === s.id);
         return {
           ...s,
           price: fullItem?.price || 0,
           category: fullItem?.category || '',
+          emoji: s.emoji || '🍽️',
         };
       });
       return NextResponse.json({ suggestions: enriched });

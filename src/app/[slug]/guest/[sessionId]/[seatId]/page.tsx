@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useMenu } from '@/hooks/useMenu';
 import { useCart } from '@/hooks/useCart';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
-import OrderStatusPanel from '@/components/customer/OrderStatusPanel';
+import Bestellboard from '@/components/customer/Bestellboard';
 
 const seatEmoji: Record<string, string> = {
   APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -243,9 +243,9 @@ export default function GuestMenuPage({
         })}
       </div>
 
-      {/* Order status panel — call waiter only, no pay button for guests */}
+      {/* Bestellboard — call waiter only, no pay button for guests */}
       {seatCode && restaurantId && (
-        <OrderStatusPanel
+        <Bestellboard
           summary={summary}
           currentSeatId={seatId}
           currentSeatCode={seatCode}
