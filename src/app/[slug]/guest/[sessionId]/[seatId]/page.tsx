@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useMenu } from '@/hooks/useMenu';
 import { useCart } from '@/hooks/useCart';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
+import OrderStatusPanel from '@/components/customer/OrderStatusPanel';
 
 const seatEmoji: Record<string, string> = {
   APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -27,7 +28,7 @@ export default function GuestMenuPage({
   const [ordering, setOrdering] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
-  const { summary } = useSessionSummary(sessionId);
+  const { summary, refetch: refetchSummary } = useSessionSummary(sessionId);
   const { categories, items, loading: menuLoading } = useMenu(restaurantId);
   const { cart, addItem, updateQuantity, clearCart, total, itemCount } = useCart(seatId);
 
@@ -46,6 +47,14 @@ export default function GuestMenuPage({
     }
     loadRestaurantId();
   }, [slug]);
+
+  // Auto-refresh summary every 15 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchSummary();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [refetchSummary]);
 
   // Derive seat code and host from summary
   useEffect(() => {
@@ -172,7 +181,7 @@ export default function GuestMenuPage({
       )}
 
       {/* Menu items */}
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      <div className="max-w-lg mx-auto px-4 py-4 pb-32 space-y-3">
         {filteredItems.map((item) => {
           const cartItem = cart.find((c) => c.id === item.id);
           return (
@@ -213,6 +222,22 @@ export default function GuestMenuPage({
           );
         })}
       </div>
+
+      {/* Order status panel — call waiter only, no pay button for guests */}
+      {seatCode && restaurantId && (
+        <OrderStatusPanel
+          summary={summary}
+          currentSeatId={seatId}
+          currentSeatCode={seatCode}
+          tableNumber={0}
+          restaurantId={restaurantId}
+          sessionType="group"
+          isHost={false}
+          onAddItem={(item) => addItem(item)}
+          onCheckout={() => {}}
+          onCallWaiter={() => {}}
+        />
+      )}
 
       {/* Cart drawer — no checkout button for guests */}
       {showCart && (

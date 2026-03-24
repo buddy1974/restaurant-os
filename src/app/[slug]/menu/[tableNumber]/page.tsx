@@ -7,6 +7,8 @@ import PaymentModal from '@/components/customer/PaymentModal';
 import GroupBillModal from '@/components/customer/GroupBillModal';
 import SessionSetup from '@/components/customer/SessionSetup';
 import JoiningGroup from '@/components/customer/JoiningGroup';
+import OrderStatusPanel from '@/components/customer/OrderStatusPanel';
+import GroupQRCode from '@/components/customer/GroupQRCode';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
 
 interface TableData {
@@ -147,6 +149,15 @@ export default function MenuPage({
 
     loadSession();
   }, [table]);
+
+  // Auto-refresh summary every 15 seconds
+  useEffect(() => {
+    if (!session) return;
+    const interval = setInterval(() => {
+      refetchSummary();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [session, refetchSummary]);
 
   // Load group code from localStorage for host
   useEffect(() => {
@@ -329,7 +340,7 @@ export default function MenuPage({
       )}
 
       {/* Menu items */}
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      <div className="max-w-lg mx-auto px-4 py-4 pb-32 space-y-3">
         {filteredItems.map((item) => {
           const cartItem = cart.find((c) => c.id === item.id);
           return (
@@ -491,31 +502,13 @@ export default function MenuPage({
         </div>
       )}
 
-      {/* Group code modal */}
+      {/* Group QR code modal */}
       {showGroupCode && groupCode && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
-            <h2 className="font-bold text-lg mb-2">Your Group Code</h2>
-            <p className="text-sm text-gray-400 mb-4">
-              Show this to your guests so they can join
-            </p>
-            <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-6 mb-4">
-              <p className="text-3xl font-black text-orange-600 tracking-widest">{groupCode}</p>
-            </div>
-            <p className="text-xs text-gray-400 mb-2">Guests go to:</p>
-            <p className="text-xs font-mono bg-gray-100 rounded p-2 mb-4 break-all">
-              {typeof window !== 'undefined'
-                ? `${window.location.origin}/${slug}/join/${groupCode}`
-                : `/${slug}/join/${groupCode}`}
-            </p>
-            <button
-              onClick={() => setShowGroupCode(false)}
-              className="w-full bg-orange-500 text-white py-3 rounded-xl font-semibold"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <GroupQRCode
+          groupCode={groupCode}
+          slug={slug}
+          onClose={() => setShowGroupCode(false)}
+        />
       )}
 
       {showPaymentModal && summary && seat && (
@@ -546,6 +539,28 @@ export default function MenuPage({
             refetchSummary();
             setTimeout(() => setOrderSuccess(false), 5000);
           }}
+        />
+      )}
+
+      {session && seat && table && (
+        <OrderStatusPanel
+          summary={summary}
+          currentSeatId={seat.id}
+          currentSeatCode={seat.seat_code}
+          tableNumber={table.number}
+          restaurantId={table.restaurant_id}
+          sessionType={sessionType || 'individual'}
+          isHost={isHost}
+          onAddItem={(item) => addItem(item)}
+          onCheckout={() => {
+            refetchSummary();
+            if (sessionType === 'group' && isHost) {
+              setShowGroupBill(true);
+            } else {
+              setShowPaymentModal(true);
+            }
+          }}
+          onCallWaiter={() => {}}
         />
       )}
 
