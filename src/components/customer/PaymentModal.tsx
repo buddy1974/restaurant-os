@@ -23,6 +23,8 @@ interface Props {
   isHost: boolean;
   paymentLockedBy: string | null;
   sessionId: string;
+  alreadyPaid: boolean;
+  paidByCode?: string;
   onTransferHost: (newHostSeatId: string) => void;
   onClose: () => void;
   onSuccess: () => void;
@@ -36,6 +38,8 @@ export default function PaymentModal({
   isHost,
   paymentLockedBy,
   sessionId,
+  alreadyPaid,
+  paidByCode,
   onTransferHost,
   onClose,
   onSuccess,
@@ -131,7 +135,7 @@ export default function PaymentModal({
 
         {/* Header */}
         <div className="flex justify-between items-center mb-5">
-          {step !== 'mode' ? (
+          {step !== 'mode' && !alreadyPaid ? (
             <button
               onClick={() => {
                 if (step === 'method') setStep('mode');
@@ -142,268 +146,302 @@ export default function PaymentModal({
             >← Back</button>
           ) : <div />}
           <h2 className="font-bold text-lg text-gray-900">
-            {step === 'mode' && 'How do you want to pay?'}
-            {step === 'split_select' && 'Select seats to pay for'}
-            {step === 'method' && 'Payment method'}
-            {step === 'confirm' && 'Confirm payment'}
+            {alreadyPaid && 'Bill settled'}
+            {!alreadyPaid && step === 'mode' && 'How do you want to pay?'}
+            {!alreadyPaid && step === 'split_select' && 'Select seats to pay for'}
+            {!alreadyPaid && step === 'method' && 'Payment method'}
+            {!alreadyPaid && step === 'confirm' && 'Confirm payment'}
           </h2>
           <button onClick={onClose} className="text-gray-400 text-2xl">✕</button>
         </div>
 
-        {paymentLockedBy && paymentLockedBy !== currentSeatId && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 text-center">
-            <p className="text-2xl mb-1">⏳</p>
-            <p className="font-semibold text-yellow-800">Payment in progress</p>
-            <p className="text-sm text-yellow-600 mt-1">
-              Another seat is currently processing payment for this table. Please wait.
-            </p>
+        {/* Already paid state */}
+        {alreadyPaid && (
+          <div className="text-center py-10">
+            <p className="text-5xl mb-4">✅</p>
+            <p className="font-bold text-xl text-gray-900">Bill settled!</p>
+            {paidByCode ? (
+              <p className="text-sm text-gray-400 mt-2">
+                {seatEmoji[paidByCode] || '🪑'} <strong>{paidByCode}</strong> paid for this table.
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400 mt-2">This table has been paid.</p>
+            )}
+            <p className="text-xs text-gray-300 mt-4">Thank you! Enjoy your meal 🍽️</p>
+            <button
+              onClick={onClose}
+              className="mt-6 w-full border border-gray-200 text-gray-500 py-3 rounded-xl text-sm"
+            >
+              Close
+            </button>
           </div>
         )}
 
-        {/* STEP 1 — Mode Selection */}
-        {step === 'mode' && (
-          <div className="space-y-3">
-
-            {/* Individual session — only pay my bill */}
-            {sessionType === 'individual' && (
-              <button
-                onClick={() => selectMode('unit')}
-                className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
-              >
-                <span className="text-3xl">🧾</span>
-                <div>
-                  <p className="font-semibold text-gray-900">Pay my bill</p>
-                  <p className="text-sm text-gray-400">
-                    Your orders · {formatPrice(currentSeatTotal)}
-                  </p>
-                </div>
-              </button>
+        {!alreadyPaid && (
+          <>
+            {paymentLockedBy && paymentLockedBy !== currentSeatId && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 text-center">
+                <p className="text-2xl mb-1">⏳</p>
+                <p className="font-semibold text-yellow-800">Payment in progress</p>
+                <p className="text-sm text-yellow-600 mt-1">
+                  Another seat is currently processing payment for this table. Please wait.
+                </p>
+              </div>
             )}
 
-            {/* Group session — all options */}
-            {sessionType === 'group' && (
-              <>
+            {/* STEP 1 — Mode Selection */}
+            {step === 'mode' && (
+              <div className="space-y-3">
+
+                {sessionType === 'individual' && (
+                  <button
+                    onClick={() => selectMode('unit')}
+                    className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                  >
+                    <span className="text-3xl">🧾</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">Pay my bill</p>
+                      <p className="text-sm text-gray-400">
+                        Your orders · {formatPrice(currentSeatTotal)}
+                      </p>
+                    </div>
+                  </button>
+                )}
+
+                {sessionType === 'group' && (
+                  <>
+                    <button
+                      onClick={() => selectMode('unit')}
+                      className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                    >
+                      <span className="text-3xl">🧾</span>
+                      <div>
+                        <p className="font-semibold text-gray-900">Pay my share</p>
+                        <p className="text-sm text-gray-400">
+                          Only your orders · {formatPrice(currentSeatTotal)}
+                        </p>
+                      </div>
+                    </button>
+
+                    {isHost && (
+                      <button
+                        onClick={() => selectMode('group')}
+                        className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                      >
+                        <span className="text-3xl">👨‍👩‍👧</span>
+                        <div>
+                          <p className="font-semibold text-gray-900">Pay for everyone</p>
+                          <p className="text-sm text-gray-400">
+                            Full table · {formatPrice(summary.unpaidTotal)}
+                          </p>
+                        </div>
+                      </button>
+                    )}
+
+                    {isHost && (
+                      <button
+                        onClick={() => selectMode('split_equal')}
+                        className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                      >
+                        <span className="text-3xl">➗</span>
+                        <div>
+                          <p className="font-semibold text-gray-900">Split equally</p>
+                          <p className="text-sm text-gray-400">
+                            {unpaidSeats.length} people · {formatPrice(splitEqualAmount)} each
+                          </p>
+                        </div>
+                      </button>
+                    )}
+
+                    {isHost && (
+                      <button
+                        onClick={() => selectMode('split_select')}
+                        className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                      >
+                        <span className="text-3xl">🤝</span>
+                        <div>
+                          <p className="font-semibold text-gray-900">Split with some</p>
+                          <p className="text-sm text-gray-400">
+                            Choose which seats to combine
+                          </p>
+                        </div>
+                      </button>
+                    )}
+
+                    {isHost && (
+                      <div className="mt-4 pt-4 border-t">
+                        <p className="text-xs text-gray-400 text-center mb-2">
+                          Want someone else to manage the bill?
+                        </p>
+                        <div className="space-y-2">
+                          {summary.seats
+                            .filter((s) => s.id !== currentSeatId)
+                            .map((s) => (
+                              <button
+                                key={s.id}
+                                onClick={() => onTransferHost(s.id)}
+                                className="w-full border border-gray-100 rounded-lg px-3 py-2 flex items-center gap-2 text-sm text-gray-600 hover:bg-gray-50"
+                              >
+                                <span>{seatEmoji[s.seat_code as string] || '🪑'}</span>
+                                <span>Transfer host to <strong>{s.seat_code as string}</strong></span>
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* STEP 2a — Split Select */}
+            {step === 'split_select' && (
+              <div>
+                <div className="space-y-2 mb-6">
+                  {unpaidSeats.map((seat: SeatSummary) => (
+                    <button
+                      key={seat.id}
+                      onClick={() => {
+                        if (seat.id !== currentSeatId) toggleSeat(seat.id);
+                      }}
+                      disabled={seat.id === currentSeatId}
+                      className={`w-full border-2 rounded-xl p-4 flex justify-between items-center transition-colors ${
+                        selectedSeats.includes(seat.id)
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-100'
+                      } ${seat.id === currentSeatId ? 'opacity-60' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{seatEmoji[seat.seat_code as string] || '🪑'}</span>
+                        <div className="text-left">
+                          <p className="font-semibold text-gray-900">{seat.seat_code as string}</p>
+                          {seat.id === currentSeatId && (
+                            <p className="text-xs text-orange-500">You (always included)</p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="font-semibold text-gray-700">{formatPrice(seat.seat_total)}</p>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="border-t pt-4 mb-4 flex justify-between font-bold text-lg">
+                  <span>Combined Total</span>
+                  <span>{formatPrice(splitSelectTotal)}</span>
+                </div>
+
                 <button
-                  onClick={() => selectMode('unit')}
-                  className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                  onClick={() => setStep('method')}
+                  disabled={selectedSeats.length === 0}
+                  className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold disabled:opacity-40"
                 >
-                  <span className="text-3xl">🧾</span>
-                  <div>
-                    <p className="font-semibold text-gray-900">Pay my share</p>
-                    <p className="text-sm text-gray-400">
-                      Only your orders · {formatPrice(currentSeatTotal)}
-                    </p>
-                  </div>
+                  Continue
                 </button>
+              </div>
+            )}
 
-                {isHost && (
+            {/* STEP 2b — Payment Method */}
+            {step === 'method' && (
+              <div>
+                <div className="space-y-3 mb-6">
                   <button
-                    onClick={() => selectMode('group')}
-                    className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                    onClick={() => setPaymentMethod('cash')}
+                    className={`w-full border-2 rounded-xl p-4 flex items-center gap-4 transition-colors ${
+                      paymentMethod === 'cash'
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200'
+                    }`}
                   >
-                    <span className="text-3xl">👨‍👩‍👧</span>
-                    <div>
-                      <p className="font-semibold text-gray-900">Pay for everyone</p>
-                      <p className="text-sm text-gray-400">
-                        Full table · {formatPrice(summary.unpaidTotal)}
-                      </p>
+                    <span className="text-3xl">💵</span>
+                    <div className="text-left">
+                      <p className="font-semibold text-gray-900">Pay with Cash</p>
+                      <p className="text-sm text-gray-400">A waiter will come to your table</p>
                     </div>
                   </button>
-                )}
 
-                {isHost && (
                   <button
-                    onClick={() => selectMode('split_equal')}
-                    className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
+                    onClick={() => setPaymentMethod('card')}
+                    className={`w-full border-2 rounded-xl p-4 flex items-center gap-4 transition-colors ${
+                      paymentMethod === 'card'
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200'
+                    }`}
                   >
-                    <span className="text-3xl">➗</span>
-                    <div>
-                      <p className="font-semibold text-gray-900">Split equally</p>
-                      <p className="text-sm text-gray-400">
-                        {unpaidSeats.length} people · {formatPrice(splitEqualAmount)} each
-                      </p>
+                    <span className="text-3xl">💳</span>
+                    <div className="text-left">
+                      <p className="font-semibold text-gray-900">Pay with Card</p>
+                      <p className="text-sm text-gray-400">Pay securely by card</p>
                     </div>
                   </button>
-                )}
+                </div>
 
-                {isHost && (
-                  <button
-                    onClick={() => selectMode('split_select')}
-                    className="w-full border-2 border-gray-100 hover:border-orange-300 rounded-xl p-4 flex items-center gap-4 text-left transition-colors"
-                  >
-                    <span className="text-3xl">🤝</span>
-                    <div>
-                      <p className="font-semibold text-gray-900">Split with some</p>
-                      <p className="text-sm text-gray-400">
-                        Choose which seats to combine
-                      </p>
-                    </div>
-                  </button>
-                )}
+                <div className="border-t pt-4 mb-4 flex justify-between font-bold text-lg">
+                  <span>You Pay</span>
+                  <span>{formatPrice(getPayingAmount())}</span>
+                </div>
 
-                {isHost && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-gray-400 text-center mb-2">
-                      Want someone else to manage the bill?
-                    </p>
-                    <div className="space-y-2">
+                <button
+                  onClick={() => setStep('confirm')}
+                  disabled={!paymentMethod}
+                  className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold disabled:opacity-40"
+                >
+                  Continue
+                </button>
+              </div>
+            )}
+
+            {/* STEP 3 — Confirm */}
+            {step === 'confirm' && (
+              <div>
+                <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2">
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Payment mode</span>
+                    <span className="font-medium capitalize">
+                      {paymentMode === 'unit' && 'My bill only'}
+                      {paymentMode === 'group' && 'Full table'}
+                      {paymentMode === 'split_equal' && 'Split equally'}
+                      {paymentMode === 'split_select' && 'Split select'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Payment method</span>
+                    <span className="font-medium capitalize">{paymentMethod}</span>
+                  </div>
+
+                  {(paymentMode === 'group' || paymentMode === 'split_select') && (
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <p className="text-xs text-gray-400 mb-2">Seats covered:</p>
                       {summary.seats
-                        .filter((s) => s.id !== currentSeatId)
+                        .filter((s) => getPayingSeatIds().includes(s.id))
                         .map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => onTransferHost(s.id)}
-                            className="w-full border border-gray-100 rounded-lg px-3 py-2 flex items-center gap-2 text-sm text-gray-600 hover:bg-gray-50"
-                          >
-                            <span>{seatEmoji[s.seat_code as string] || '🪑'}</span>
-                            <span>Transfer host to <strong>{s.seat_code as string}</strong></span>
-                          </button>
+                          <div key={s.id} className="flex justify-between text-xs text-gray-600 py-0.5">
+                            <span>{seatEmoji[s.seat_code as string] || '🪑'} {s.seat_code as string}</span>
+                            <span>{formatPrice(Number(s.seat_total))}</span>
+                          </div>
                         ))}
                     </div>
+                  )}
+
+                  <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                    <span>Total</span>
+                    <span>{formatPrice(getPayingAmount())}</span>
                   </div>
+                </div>
+
+                {error && (
+                  <p className="text-red-500 text-sm text-center mb-4">{error}</p>
                 )}
-              </>
-            )}
-          </div>
-        )}
 
-        {/* STEP 2a — Split Select */}
-        {step === 'split_select' && (
-          <div>
-            <div className="space-y-2 mb-6">
-              {unpaidSeats.map((seat: SeatSummary) => (
                 <button
-                  key={seat.id}
-                  onClick={() => {
-                    if (seat.id !== currentSeatId) toggleSeat(seat.id);
-                  }}
-                  disabled={seat.id === currentSeatId}
-                  className={`w-full border-2 rounded-xl p-4 flex justify-between items-center transition-colors ${
-                    selectedSeats.includes(seat.id)
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-100'
-                  } ${seat.id === currentSeatId ? 'opacity-60' : ''}`}
+                  onClick={processPayment}
+                  disabled={processing}
+                  className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-50"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{seatEmoji[seat.seat_code as string] || '🪑'}</span>
-                    <div className="text-left">
-                      <p className="font-semibold text-gray-900">{seat.seat_code as string}</p>
-                      {seat.id === currentSeatId && (
-                        <p className="text-xs text-orange-500">You (always included)</p>
-                      )}
-                    </div>
-                  </div>
-                  <p className="font-semibold text-gray-700">{formatPrice(seat.seat_total)}</p>
+                  {processing ? 'Processing...' : `Confirm Payment · ${formatPrice(getPayingAmount())}`}
                 </button>
-              ))}
-            </div>
-
-            <div className="border-t pt-4 mb-4 flex justify-between font-bold text-lg">
-              <span>Combined Total</span>
-              <span>{formatPrice(splitSelectTotal)}</span>
-            </div>
-
-            <button
-              onClick={() => setStep('method')}
-              disabled={selectedSeats.length === 0}
-              className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold disabled:opacity-40"
-            >
-              Continue
-            </button>
-          </div>
-        )}
-
-        {/* STEP 2b — Payment Method */}
-        {step === 'method' && (
-          <div>
-            <div className="space-y-3 mb-6">
-              <button
-                onClick={() => setPaymentMethod('cash')}
-                className={`w-full border-2 rounded-xl p-4 flex items-center gap-4 transition-colors ${
-                  paymentMethod === 'cash'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200'
-                }`}
-              >
-                <span className="text-3xl">💵</span>
-                <div className="text-left">
-                  <p className="font-semibold text-gray-900">Pay with Cash</p>
-                  <p className="text-sm text-gray-400">A waiter will come to your table</p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setPaymentMethod('card')}
-                className={`w-full border-2 rounded-xl p-4 flex items-center gap-4 transition-colors ${
-                  paymentMethod === 'card'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200'
-                }`}
-              >
-                <span className="text-3xl">💳</span>
-                <div className="text-left">
-                  <p className="font-semibold text-gray-900">Pay with Card</p>
-                  <p className="text-sm text-gray-400">Pay securely by card</p>
-                </div>
-              </button>
-            </div>
-
-            <div className="border-t pt-4 mb-4 flex justify-between font-bold text-lg">
-              <span>You Pay</span>
-              <span>{formatPrice(getPayingAmount())}</span>
-            </div>
-
-            <button
-              onClick={() => setStep('confirm')}
-              disabled={!paymentMethod}
-              className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold disabled:opacity-40"
-            >
-              Continue
-            </button>
-          </div>
-        )}
-
-        {/* STEP 3 — Confirm */}
-        {step === 'confirm' && (
-          <div>
-            <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Payment mode</span>
-                <span className="font-medium capitalize">
-                  {paymentMode === 'unit' && 'My bill only'}
-                  {paymentMode === 'group' && 'Full table'}
-                  {paymentMode === 'split_equal' && 'Split equally'}
-                  {paymentMode === 'split_select' && 'Split select'}
-                </span>
               </div>
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Payment method</span>
-                <span className="font-medium capitalize">{paymentMethod}</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Seats covered</span>
-                <span className="font-medium">
-                  {getPayingSeatIds().length} seat{getPayingSeatIds().length > 1 ? 's' : ''}
-                </span>
-              </div>
-              <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                <span>Total</span>
-                <span>{formatPrice(getPayingAmount())}</span>
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-red-500 text-sm text-center mb-4">{error}</p>
             )}
-
-            <button
-              onClick={processPayment}
-              disabled={processing}
-              className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-50"
-            >
-              {processing ? 'Processing...' : `Confirm Payment · ${formatPrice(getPayingAmount())}`}
-            </button>
-          </div>
+          </>
         )}
       </div>
     </div>

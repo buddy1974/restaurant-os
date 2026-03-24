@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { sendTelegramMessage } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,6 +79,31 @@ export async function POST(request: NextRequest) {
           WHERE id = ${(session as { table_id: string }).table_id}
         `;
       }
+    }
+
+    // Notify staff of payment
+    try {
+      const [tableInfo] = await sql`
+        SELECT t.number FROM tables t
+        JOIN table_sessions s ON s.table_id = t.id
+        WHERE s.id = ${sessionId}
+      `;
+      const [payerSeat] = await sql`
+        SELECT seat_code FROM seats WHERE id = ${seatIds[0]}
+      `;
+
+      const modeLabel: Record<string, string> = {
+        unit: 'individual',
+        group: 'full table',
+        split_equal: 'split equally',
+        split_select: 'split select',
+      };
+
+      await sendTelegramMessage(
+        `💰 <b>Payment Confirmed</b>\n\n📍 Table ${(tableInfo as { number: number }).number}\n👤 Paid by: ${(payerSeat as { seat_code: string }).seat_code}\n💳 Method: ${paymentMethod}\n📋 Mode: ${modeLabel[paymentMode] || paymentMode}\n🪑 Seats covered: ${seatIds.length}`
+      );
+    } catch (err) {
+      console.error('Telegram payment notification failed:', err);
     }
 
     return NextResponse.json({ success: true, remainingUnpaid: unpaidSeats.length });

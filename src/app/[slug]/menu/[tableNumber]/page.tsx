@@ -65,6 +65,10 @@ export default function MenuPage({
     useCart(session?.id || null);
   const { summary, refetch: refetchSummary } = useSessionSummary(session?.id || null);
   const isHost = summary ? seat?.id === summary.hostSeatId : false;
+  const currentSeatData = summary?.seats.find((s) => s.id === seat?.id);
+  const alreadyPaid = currentSeatData?.paid || false;
+  const allPaid = summary ? summary.seats.every((s) => s.paid) : false;
+  const paidBySeat = allPaid && summary ? summary.seats.find((s) => s.paid) : null;
 
   // Step 1 — load table
   useEffect(() => {
@@ -452,6 +456,8 @@ export default function MenuPage({
           isHost={isHost}
           paymentLockedBy={summary.paymentLockedBy}
           sessionId={summary.sessionId}
+          alreadyPaid={alreadyPaid}
+          paidByCode={paidBySeat?.seat_code as string | undefined}
           onTransferHost={async (newHostSeatId) => {
             await fetch('/api/sessions', {
               method: 'PATCH',
