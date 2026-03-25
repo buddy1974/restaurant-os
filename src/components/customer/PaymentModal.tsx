@@ -113,6 +113,26 @@ export default function PaymentModal({
     setError(null);
 
     try {
+      if (paymentMethod === 'cash') {
+        // Step 1 — Notify waiter FIRST via Telegram
+        console.log('[PaymentModal] cash payment - tableNumber:', tableNumber, 'seatCode:', currentSeatCode);
+        await fetch('/api/call-waiter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tableNumber,
+            seatCode: currentSeatCode,
+            reason: `💰 Cash payment ready — please collect €${getPayingAmount().toFixed(2)} from ${currentSeatCode}`,
+          }),
+        });
+
+        // Step 2 — Show waiting screen (do NOT mark paid yet)
+        setStep('cash_waiting');
+        setProcessing(false);
+        return;
+      }
+
+      // Card payment — mark paid immediately
       const res = await fetch('/api/sessions/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,29 +145,36 @@ export default function PaymentModal({
       });
 
       if (!res.ok) throw new Error('Payment failed');
-
-      if (paymentMethod === 'cash') {
-        // Notify waiter via Telegram
-        console.log('[PaymentModal] cash payment - tableNumber:', tableNumber, 'seatCode:', currentSeatCode);
-        await fetch('/api/call-waiter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tableNumber,
-            seatCode: currentSeatCode,
-            reason: `💰 Cash payment ready — please collect €${getPayingAmount().toFixed(2)}`,
-          }),
-        }).catch(console.error);
-
-        // Show waiting screen — receipt generated when user dismisses
-        setStep('cash_waiting');
-        setProcessing(false);
-        return;
-      }
-
       onSuccess(paymentMethod, paymentMode);
-    } catch {
+    } catch (err) {
+      console.error('[PaymentModal] processPayment error:', err);
       setError('Payment could not be processed. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function confirmCashPayment() {
+    setProcessing(true);
+    setError(null);
+    try {
+      // NOW mark paid in DB after waiter has collected cash
+      const res = await fetch('/api/sessions/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: summary.sessionId,
+          seatIds: getPayingSeatIds(),
+          paymentMode,
+          paymentMethod: 'cash',
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to confirm payment');
+      onSuccess('cash', paymentMode!);
+    } catch (err) {
+      console.error('[PaymentModal] confirmCashPayment error:', err);
+      setError('Could not confirm payment. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -475,25 +502,42 @@ export default function PaymentModal({
 
             {/* STEP 4 — Cash Waiting */}
             {step === 'cash_waiting' && (
-              <div className="text-center py-8">
-                <div className="text-6xl mb-4 animate-bounce">🔔</div>
+              <div className="text-center py-6">
+                <div className="text-6xl mb-4">🔔</div>
                 <h2 className="font-black text-xl text-gray-900 mb-2">
                   Waiter is on the way!
                 </h2>
-                <p className="text-sm text-gray-500 mb-6">
-                  Please have <strong>€{getPayingAmount().toFixed(2)}</strong> ready.
-                  A waiter will come to your table to collect payment.
+                <p className="text-sm text-gray-500 mb-2">
+                  Please have your payment ready:
                 </p>
-                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
-                  <p className="text-sm text-orange-700">
-                    💡 Your receipt will be shown once you tap Done.
+                <div className="bg-orange-50 border-2 border-orange-200 rounded-xl py-4 px-6 mb-6">
+                  <p className="text-3xl font-black text-orange-600">
+                    €{getPayingAmount().toFixed(2)}
                   </p>
+                  <p className="text-xs text-orange-400 mt-1">Cash</p>
                 </div>
+
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-6 text-sm text-blue-600">
+                  💡 Tap the button below <strong>only after</strong> the waiter has collected your cash.
+                </div>
+
+                {error && (
+                  <p className="text-red-500 text-sm mb-3">{error}</p>
+                )}
+
                 <button
-                  onClick={() => onSuccess('cash', paymentMode!)}
-                  className="w-full bg-gray-900 text-white py-3 rounded-xl text-sm font-semibold"
+                  onClick={confirmCashPayment}
+                  disabled={processing}
+                  className="w-full bg-green-500 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 mb-3"
                 >
-                  Done
+                  {processing ? 'Confirming...' : '✅ I have paid — get my receipt'}
+                </button>
+
+                <button
+                  onClick={onClose}
+                  className="w-full border border-gray-200 text-gray-400 py-3 rounded-xl text-sm"
+                >
+                  Keep open
                 </button>
               </div>
             )}

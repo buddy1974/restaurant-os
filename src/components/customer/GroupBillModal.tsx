@@ -24,7 +24,8 @@ interface Props {
 export default function GroupBillModal({ summary, hostSeatCode, onClose, onSuccess, sessionId, tableNumber }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [step, setStep] = useState<'bill' | 'method' | 'confirm'>('bill');
+  const [step, setStep] = useState<'bill' | 'method' | 'confirm' | 'cash_waiting'>('bill');
+  const [error, setError] = useState<string | null>(null);
   const [showStripe, setShowStripe] = useState(false);
 
   const formatPrice = (p: number) =>
@@ -33,7 +34,27 @@ export default function GroupBillModal({ summary, hostSeatCode, onClose, onSucce
   async function confirmPayment() {
     if (!paymentMethod) return;
     setProcessing(true);
+    setError(null);
     try {
+      if (paymentMethod === 'cash') {
+        // Step 1 — Notify waiter FIRST via Telegram
+        await fetch('/api/call-waiter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tableNumber,
+            seatCode: hostSeatCode,
+            reason: `💰 Group cash payment ready — please collect €${summary.grandTotal.toFixed(2)} from ${hostSeatCode}`,
+          }),
+        });
+
+        // Step 2 — Show waiting screen (do NOT mark paid yet)
+        setStep('cash_waiting');
+        setProcessing(false);
+        return;
+      }
+
+      // Card — mark paid immediately (handled via Stripe overlay)
       const allSeatIds = summary.seats.map((s) => s.id);
       const res = await fetch('/api/sessions/pay', {
         method: 'POST',
@@ -46,23 +67,34 @@ export default function GroupBillModal({ summary, hostSeatCode, onClose, onSucce
         }),
       });
       if (!res.ok) throw new Error('Payment failed');
-
-      // If cash payment, notify waiter via Telegram
-      if (paymentMethod === 'cash') {
-        await fetch('/api/call-waiter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tableNumber,
-            seatCode: hostSeatCode,
-            reason: `💰 Group cash payment ready — please collect €${summary.grandTotal.toFixed(2)} from ${hostSeatCode}`,
-          }),
-        }).catch(console.error);
-      }
-
       onSuccess(paymentMethod);
     } catch {
-      alert('Payment failed. Please try again.');
+      setError('Payment failed. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function confirmCashPayment() {
+    setProcessing(true);
+    setError(null);
+    try {
+      // NOW mark paid in DB after waiter has collected cash
+      const allSeatIds = summary.seats.map((s) => s.id);
+      const res = await fetch('/api/sessions/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          seatIds: allSeatIds,
+          paymentMode: 'group',
+          paymentMethod: 'cash',
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to confirm payment');
+      onSuccess('cash');
+    } catch {
+      setError('Could not confirm payment. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -73,7 +105,7 @@ export default function GroupBillModal({ summary, hostSeatCode, onClose, onSucce
       <div className="bg-white rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto">
 
         <div className="flex justify-between items-center mb-4">
-          {step !== 'bill' ? (
+          {step !== 'bill' && step !== 'cash_waiting' ? (
             <button
               onClick={() => setStep(step === 'confirm' ? 'method' : 'bill')}
               className="text-gray-400 text-sm"
@@ -83,6 +115,7 @@ export default function GroupBillModal({ summary, hostSeatCode, onClose, onSucce
             {step === 'bill' && '👑 Group Bill'}
             {step === 'method' && 'How to pay?'}
             {step === 'confirm' && 'Confirm Payment'}
+            {step === 'cash_waiting' && 'Payment pending'}
           </h2>
           <button onClick={onClose} className="text-gray-400 text-2xl">✕</button>
         </div>
@@ -213,6 +246,47 @@ export default function GroupBillModal({ summary, hostSeatCode, onClose, onSucce
               {processing ? 'Processing...' : `Confirm · ${formatPrice(summary.grandTotal)}`}
             </button>
           </>
+        )}
+
+        {step === 'cash_waiting' && (
+          <div className="text-center py-6">
+            <div className="text-6xl mb-4">🔔</div>
+            <h2 className="font-black text-xl text-gray-900 mb-2">
+              Waiter is on the way!
+            </h2>
+            <p className="text-sm text-gray-500 mb-2">
+              Please have your payment ready:
+            </p>
+            <div className="bg-orange-50 border-2 border-orange-200 rounded-xl py-4 px-6 mb-6">
+              <p className="text-3xl font-black text-orange-600">
+                €{summary.grandTotal.toFixed(2)}
+              </p>
+              <p className="text-xs text-orange-400 mt-1">Cash · Full group bill</p>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-6 text-sm text-blue-600">
+              💡 Tap the button below <strong>only after</strong> the waiter has collected your cash.
+            </div>
+
+            {error && (
+              <p className="text-red-500 text-sm mb-3">{error}</p>
+            )}
+
+            <button
+              onClick={confirmCashPayment}
+              disabled={processing}
+              className="w-full bg-green-500 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 mb-3"
+            >
+              {processing ? 'Confirming...' : '✅ I have paid — get my receipt'}
+            </button>
+
+            <button
+              onClick={onClose}
+              className="w-full border border-gray-200 text-gray-400 py-3 rounded-xl text-sm"
+            >
+              Keep open
+            </button>
+          </div>
         )}
       </div>
 
