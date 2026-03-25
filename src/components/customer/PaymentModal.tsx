@@ -118,25 +118,26 @@ export default function PaymentModal({
 
     try {
       if (paymentMethod === 'cash') {
-        // Notify waiter FIRST via Telegram
-        console.log('[PaymentModal] cash payment - tableNumber:', tableNumber, 'seatCode:', currentSeatCode);
-        await fetch('/api/call-waiter', {
+        console.log('[PaymentModal] firing Telegram waiter notification, table:', tableNumber);
+
+        const waiterRes = await fetch('/api/call-waiter', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tableNumber,
             seatCode: currentSeatCode,
-            reason: `💰 Cash payment ready — please collect €${totalWithTip.toFixed(2)} from ${currentSeatCode}${tipPercent > 0 ? ` (incl. €${tipAmount.toFixed(2)} tip)` : ''}`,
+            reason: `💰 Cash payment ready — please collect €${totalWithTip.toFixed(2)} from ${currentSeatCode}${tipAmount > 0 ? ` (incl. €${tipAmount.toFixed(2)} tip)` : ''}`,
           }),
         });
 
-        // Show waiting screen (do NOT mark paid yet)
+        console.log('[PaymentModal] waiter API response:', waiterRes.status);
+
         setStep('cash_waiting');
         setProcessing(false);
         return;
       }
 
-      // Card — mark paid immediately
+      // Card payment
       const res = await fetch('/api/sessions/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,10 +151,10 @@ export default function PaymentModal({
       });
 
       if (!res.ok) throw new Error('Payment failed');
-      onSuccess(paymentMethod, paymentMode, tipAmount);
+      onSuccess(paymentMethod, paymentMode!, tipAmount);
     } catch (err) {
       console.error('[PaymentModal] processPayment error:', err);
-      setError('Payment could not be processed. Please try again.');
+      setError(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setProcessing(false);
     }
