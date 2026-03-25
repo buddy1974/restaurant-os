@@ -95,29 +95,29 @@ Seat codes: fruit-based (APPLE, MANGO, BANANA, PINEAPPLE, STRAWBERRY, ORANGE, GR
 Test URL when running locally: http://localhost:3000/menu/1
 
 ## Current Build Phase
-ALL PHASES COMPLETE ✅
+PHASE A — Demo Ready ✅ Complete
 
-## What Is Built and Working
-- Individual session: scan QR → order → pay → done
-- Group session: host scans → generates QR code → guests join → order freely → host pays group bill
-- Real-time order status panel (sticky bottom bar)
-- AI upsell suggestions from menu using Anthropic API
-- Call waiter button with reason selection → Telegram notification
-- Telegram notifications: new orders, session start, waiter calls, payment confirmed
-- Staff dashboard: tables grouped by seat with order details
-- Admin panel: add/edit/delete menu items and categories
-- QR code generation for group sessions
-- Payment confirmation with full receipt
+## What Was Built
+- GAP 6: Table QR generator in admin panel
+- GAP 3: Menu images (Unsplash, 34 items, auto-find in admin)
+- GAP 2: Stripe card payments (PaymentIntent, webhook, StripeCheckout component)
+- Bestellboard: dark floating panel with AI suggestions
+- All pipeline bugs fixed:
+  - Individual: no table popup, skip pay my bill, cash triggers Telegram, card confirmation
+  - Group: host sees group bill, AI suggestions, cash triggers Telegram
 
-## Next Steps
-- Phase 5: Stripe card payments
-- Phase 6: Multi-tenant onboarding
+## Next Phase
+PHASE B — SaaS Ready
+- GAP 1: Kitchen Display System
+- GAP 4: Multi-restaurant onboarding
+- GAP 5: Analytics dashboard
 
 ## Live URLs
 Customer (individual or host): https://restaurant-os-one.vercel.app/demo/menu/[1-6]
 Guest join: https://restaurant-os-one.vercel.app/demo/join/[groupCode]
 Staff: https://restaurant-os-one.vercel.app/demo/staff
 Admin: https://restaurant-os-one.vercel.app/demo/admin
+Stripe test card: 4242 4242 4242 4242 exp:12/34 cvc:123
 
 ## Key Files
 - src/app/[slug]/menu/[tableNumber]/page.tsx — customer menu (host + individual)
@@ -126,7 +126,7 @@ Admin: https://restaurant-os-one.vercel.app/demo/admin
 - src/components/customer/SessionSetup.tsx — dining type selector
 - src/components/customer/PaymentModal.tsx — individual payment modes
 - src/components/customer/GroupBillModal.tsx — host group bill payment
-- src/components/customer/OrderStatusPanel.tsx — sticky order status + AI upsell + call waiter
+- src/components/customer/Bestellboard.tsx — dark floating panel: orders, AI upsell, call waiter, pay
 - src/components/customer/GroupQRCode.tsx — scannable QR for group join
 - src/app/api/sessions/route.ts — session management (tableId + groupCode lookup)
 - src/app/api/sessions/pay/route.ts — payment processing + Telegram notification

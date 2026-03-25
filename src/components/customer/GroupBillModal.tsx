@@ -16,7 +16,7 @@ interface Props {
   summary: SessionSummary;
   hostSeatCode: string;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (paymentMethod: 'cash' | 'card') => void;
   sessionId: string;
   tableNumber: number;
 }
@@ -60,7 +60,7 @@ export default function GroupBillModal({ summary, hostSeatCode, onClose, onSucce
         }).catch(console.error);
       }
 
-      onSuccess();
+      onSuccess(paymentMethod);
     } catch {
       alert('Payment failed. Please try again.');
     } finally {
@@ -231,7 +231,7 @@ export default function GroupBillModal({ summary, hostSeatCode, onClose, onSucce
               tableNumber={0}
               onSuccess={() => {
                 setShowStripe(false);
-                onSuccess();
+                onSuccess('card');
               }}
               onCancel={() => setShowStripe(false)}
             />

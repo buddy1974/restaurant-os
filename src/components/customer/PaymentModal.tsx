@@ -29,7 +29,7 @@ interface Props {
   paidByCode?: string;
   onTransferHost: (newHostSeatId: string) => void;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (paymentMethod: 'cash' | 'card', paymentMode: string) => void;
 }
 
 export default function PaymentModal({
@@ -139,7 +139,7 @@ export default function PaymentModal({
         }).catch(console.error);
       }
 
-      onSuccess();
+      onSuccess(paymentMethod, paymentMode);
     } catch {
       setError('Payment could not be processed. Please try again.');
     } finally {
@@ -484,7 +484,7 @@ export default function PaymentModal({
               tableNumber={0}
               onSuccess={() => {
                 setShowStripe(false);
-                onSuccess();
+                onSuccess('card', paymentMode || 'unit');
               }}
               onCancel={() => setShowStripe(false)}
             />

@@ -8,6 +8,7 @@ import GroupBillModal from '@/components/customer/GroupBillModal';
 import SessionSetup from '@/components/customer/SessionSetup';
 import JoiningGroup from '@/components/customer/JoiningGroup';
 import Bestellboard from '@/components/customer/Bestellboard';
+import ReceiptModal from '@/components/customer/ReceiptModal';
 import GroupQRCode from '@/components/customer/GroupQRCode';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
 
@@ -55,6 +56,19 @@ export default function MenuPage({
   const [hostSeatCode, setHostSeatCode] = useState<string | null>(null);
   const [groupCode, setGroupCode] = useState<string | null>(null);
   const [showGroupCode, setShowGroupCode] = useState(false);
+  const [receipt, setReceipt] = useState<{
+    receipt_number: string;
+    restaurant_name: string;
+    table_number: number;
+    seat_code?: string;
+    payment_method: string;
+    payment_mode: string;
+    subtotal: string;
+    vat_amount: string;
+    total: string;
+    items: { name: string; price: number; quantity: number }[];
+    issued_at: string;
+  } | null>(null);
 
   const seatEmoji: Record<string, string> = {
     APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -223,6 +237,35 @@ export default function MenuPage({
       setError('Could not start session. Please try again.');
     } finally {
       setSettingUpSession(false);
+    }
+  }
+
+  async function generateReceipt(
+    paymentMethod: string,
+    paymentMode: string,
+    items: { name: string; price: number; quantity: number }[]
+  ) {
+    try {
+      const res = await fetch('/api/receipts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: session?.id,
+          seatId: seat?.id,
+          restaurantId: table?.restaurant_id,
+          tableNumber: table?.number,
+          seatCode: seat?.seat_code,
+          paymentMethod,
+          paymentMode,
+          items,
+        }),
+      });
+      const data = await res.json();
+      if (data.receipt) {
+        setReceipt(data.receipt);
+      }
+    } catch (err) {
+      console.error('Failed to generate receipt', err);
     }
   }
 
@@ -561,12 +604,22 @@ export default function MenuPage({
             await refetchSummary();
           }}
           onClose={() => setShowPaymentModal(false)}
-          onSuccess={() => {
+          onSuccess={async (paymentMethod, paymentMode) => {
             setShowPaymentModal(false);
             clearCart();
             setOrderSuccess(true);
+            // Capture items before refetch
+            const seatData = summary?.seats.find((s) => s.id === seat?.id);
+            const seatItems = (seatData?.items || []).map((i) => ({
+              name: i.name, price: i.price, quantity: i.quantity,
+            }));
+            const allItems = (summary?.seats.flatMap((s) =>
+              s.items.map((i) => ({ name: i.name, price: i.price, quantity: i.quantity }))
+            ) || []);
+            const receiptItems = paymentMode === 'unit' ? seatItems : allItems;
+            await generateReceipt(paymentMethod, paymentMode, receiptItems);
             refetchSummary();
-            setTimeout(() => setOrderSuccess(false), 5000);
+            setTimeout(() => setOrderSuccess(false), 6000);
           }}
         />
       )}
@@ -600,13 +653,25 @@ export default function MenuPage({
           sessionId={session!.id}
           tableNumber={table?.number || 0}
           onClose={() => setShowGroupBill(false)}
-          onSuccess={() => {
+          onSuccess={async (paymentMethod) => {
             setShowGroupBill(false);
             clearCart();
             setOrderSuccess(true);
+            // Capture all seat items before refetch
+            const allItems = (summary?.seats.flatMap((s) =>
+              s.items.map((i) => ({ name: i.name, price: i.price, quantity: i.quantity }))
+            ) || []);
+            await generateReceipt(paymentMethod, 'group', allItems);
             refetchSummary();
-            setTimeout(() => setOrderSuccess(false), 5000);
+            setTimeout(() => setOrderSuccess(false), 6000);
           }}
+        />
+      )}
+
+      {receipt && (
+        <ReceiptModal
+          receipt={receipt}
+          onClose={() => setReceipt(null)}
         />
       )}
 
