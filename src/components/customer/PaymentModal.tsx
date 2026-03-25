@@ -15,7 +15,7 @@ const seatEmoji: Record<string, string> = {
 
 type PaymentMode = 'unit' | 'group' | 'split_equal' | 'split_select';
 type PaymentMethod = 'cash' | 'card';
-type Step = 'mode' | 'method' | 'tip' | 'split_select' | 'confirm' | 'cash_waiting';
+type Step = 'mode' | 'method' | 'tip' | 'split_select' | 'cash_waiting';
 
 interface Props {
   summary: SessionSummary;
@@ -203,7 +203,6 @@ export default function PaymentModal({
                 if (step === 'method') setStep('mode');
                 if (step === 'split_select') setStep('mode');
                 if (step === 'tip') setStep('method');
-                if (step === 'confirm') setStep('tip');
               }}
               className="text-gray-400 text-sm"
             >← Back</button>
@@ -214,7 +213,6 @@ export default function PaymentModal({
             {!alreadyPaid && step === 'split_select' && 'Select seats to pay for'}
             {!alreadyPaid && step === 'method' && 'How would you like to pay?'}
             {!alreadyPaid && step === 'tip' && 'Add a tip?'}
-            {!alreadyPaid && step === 'confirm' && 'Confirm payment'}
             {!alreadyPaid && step === 'cash_waiting' && 'Payment pending'}
           </h2>
           <button onClick={onClose} className="text-gray-400 text-2xl">✕</button>
@@ -491,7 +489,7 @@ export default function PaymentModal({
                     if (paymentMethod === 'card') {
                       setShowStripe(true);
                     } else {
-                      setStep('confirm');
+                      processPayment();
                     }
                   }}
                   className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg"
@@ -501,69 +499,7 @@ export default function PaymentModal({
               </div>
             )}
 
-            {/* STEP 4 — Confirm (cash only) */}
-            {step === 'confirm' && (
-              <div>
-                <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2">
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Payment mode</span>
-                    <span className="font-medium capitalize">
-                      {paymentMode === 'unit' && 'My bill only'}
-                      {paymentMode === 'group' && 'Full table'}
-                      {paymentMode === 'split_equal' && 'Split equally'}
-                      {paymentMode === 'split_select' && 'Split select'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Payment method</span>
-                    <span className="font-medium capitalize">{paymentMethod}</span>
-                  </div>
-
-                  {(paymentMode === 'group' || paymentMode === 'split_select') && (
-                    <div className="mt-2 pt-2 border-t border-gray-100">
-                      <p className="text-xs text-gray-400 mb-2">Seats covered:</p>
-                      {summary.seats
-                        .filter((s) => getPayingSeatIds().includes(s.id))
-                        .map((s) => (
-                          <div key={s.id} className="flex justify-between text-xs text-gray-600 py-0.5">
-                            <span>{seatEmoji[s.seat_code as string] || '🪑'} {s.seat_code as string}</span>
-                            <span>{formatPrice(Number(s.seat_total))}</span>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-
-                  <div className="border-t pt-2 space-y-1">
-                    <div className="flex justify-between text-sm text-gray-500">
-                      <span>Bill</span>
-                      <span>{formatPrice(getPayingAmount())}</span>
-                    </div>
-                    {tipPercent > 0 && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Tip ({tipPercent}%)</span>
-                        <span>+ {formatPrice(tipAmount)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-bold text-lg">
-                      <span>Total</span>
-                      <span className="text-orange-600">{formatPrice(totalWithTip)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
-
-                <button
-                  onClick={processPayment}
-                  disabled={processing}
-                  className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-50"
-                >
-                  {processing ? 'Processing...' : `Confirm Payment · ${formatPrice(totalWithTip)}`}
-                </button>
-              </div>
-            )}
-
-            {/* STEP 5 — Cash Waiting */}
+            {/* STEP 4 — Cash Waiting */}
             {step === 'cash_waiting' && (
               <div className="text-center py-6">
                 <div className="text-6xl mb-4">🔔</div>
