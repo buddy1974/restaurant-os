@@ -85,9 +85,16 @@ export default function Bestellboard({
     prevItemCount.current = currentCount;
   }, [myItems.length]);
 
-  // Fetch AI suggestions when item count changes
+  // Reset suggestions when item count changes (must run before fetch effect)
   useEffect(() => {
-    if (myItems.length === 0 || !restaurantId) return;
+    setSuggestions([]);
+  }, [myItems.length]);
+
+  // Fetch AI suggestions — only when suggestions are empty
+  useEffect(() => {
+    if (myItems.length === 0 || !restaurantId || !summary?.sessionId) return;
+    if (suggestions.length > 0) return; // Already have suggestions for this order state
+
     let cancelled = false;
 
     async function fetchSuggestions() {
@@ -103,7 +110,9 @@ export default function Bestellboard({
           }),
         });
         const data = await res.json();
-        if (!cancelled) setSuggestions(data.suggestions || []);
+        if (!cancelled && data.suggestions?.length > 0) {
+          setSuggestions(data.suggestions);
+        }
       } catch {
         if (!cancelled) setSuggestions([]);
       } finally {
@@ -114,7 +123,7 @@ export default function Bestellboard({
     fetchSuggestions();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myItems.length, restaurantId, summary?.sessionId]);
+  }, [myItems.length, restaurantId, summary?.sessionId, suggestions.length]);
 
   async function callWaiter(reason: string) {
     setCallingWaiter(true);

@@ -606,6 +606,7 @@ export default function MenuPage({
           onClose={() => setShowPaymentModal(false)}
           onSuccess={async (paymentMethod, paymentMode) => {
             setShowPaymentModal(false);
+            if (session?.id) localStorage.removeItem(`cart_${session.id}`);
             clearCart();
             setOrderSuccess(true);
             // Capture items before refetch
@@ -655,6 +656,7 @@ export default function MenuPage({
           onClose={() => setShowGroupBill(false)}
           onSuccess={async (paymentMethod) => {
             setShowGroupBill(false);
+            if (session?.id) localStorage.removeItem(`cart_${session.id}`);
             clearCart();
             setOrderSuccess(true);
             // Capture all seat items before refetch

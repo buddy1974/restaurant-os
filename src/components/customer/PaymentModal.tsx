@@ -14,7 +14,7 @@ const seatEmoji: Record<string, string> = {
 
 type PaymentMode = 'unit' | 'group' | 'split_equal' | 'split_select';
 type PaymentMethod = 'cash' | 'card';
-type Step = 'mode' | 'method' | 'split_select' | 'confirm';
+type Step = 'mode' | 'method' | 'split_select' | 'confirm' | 'cash_waiting';
 
 interface Props {
   summary: SessionSummary;
@@ -126,8 +126,9 @@ export default function PaymentModal({
 
       if (!res.ok) throw new Error('Payment failed');
 
-      // If cash payment, notify waiter via Telegram
       if (paymentMethod === 'cash') {
+        // Notify waiter via Telegram
+        console.log('Calling waiter for cash payment, table:', tableNumber);
         await fetch('/api/call-waiter', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -137,6 +138,11 @@ export default function PaymentModal({
             reason: `💰 Cash payment ready — please collect €${getPayingAmount().toFixed(2)}`,
           }),
         }).catch(console.error);
+
+        // Show waiting screen — receipt generated when user dismisses
+        setStep('cash_waiting');
+        setProcessing(false);
+        return;
       }
 
       onSuccess(paymentMethod, paymentMode);
@@ -153,7 +159,7 @@ export default function PaymentModal({
 
         {/* Header */}
         <div className="flex justify-between items-center mb-5">
-          {step !== 'mode' && !alreadyPaid && !(sessionType === 'individual' && step === 'method') ? (
+          {step !== 'mode' && step !== 'cash_waiting' && !alreadyPaid && !(sessionType === 'individual' && step === 'method') ? (
             <button
               onClick={() => {
                 if (step === 'method') setStep('mode');
@@ -169,6 +175,7 @@ export default function PaymentModal({
             {!alreadyPaid && step === 'split_select' && 'Select seats to pay for'}
             {!alreadyPaid && step === 'method' && 'How would you like to pay?'}
             {!alreadyPaid && step === 'confirm' && 'Confirm payment'}
+            {!alreadyPaid && step === 'cash_waiting' && 'Payment pending'}
           </h2>
           <button onClick={onClose} className="text-gray-400 text-2xl">✕</button>
         </div>
@@ -462,6 +469,31 @@ export default function PaymentModal({
                   className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-50"
                 >
                   {processing ? 'Processing...' : `Confirm Payment · ${formatPrice(getPayingAmount())}`}
+                </button>
+              </div>
+            )}
+
+            {/* STEP 4 — Cash Waiting */}
+            {step === 'cash_waiting' && (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4 animate-bounce">🔔</div>
+                <h2 className="font-black text-xl text-gray-900 mb-2">
+                  Waiter is on the way!
+                </h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Please have <strong>€{getPayingAmount().toFixed(2)}</strong> ready.
+                  A waiter will come to your table to collect payment.
+                </p>
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+                  <p className="text-sm text-orange-700">
+                    💡 Your receipt will be shown once you tap Done.
+                  </p>
+                </div>
+                <button
+                  onClick={() => onSuccess('cash', paymentMode!)}
+                  className="w-full bg-gray-900 text-white py-3 rounded-xl text-sm font-semibold"
+                >
+                  Done
                 </button>
               </div>
             )}
