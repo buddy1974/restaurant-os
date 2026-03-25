@@ -192,7 +192,7 @@ export default function PaymentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40">
-      <div className="bg-white rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto pointer-events-auto">
 
         {/* Header */}
         <div className="flex justify-between items-center mb-5">
@@ -607,7 +607,7 @@ export default function PaymentModal({
         )}
       </div>
 
-      {showStripe && (
+      {showStripe && paymentMethod === 'card' && (
         <div className="fixed inset-0 z-[60] flex flex-col justify-end bg-black/50">
           <div className="bg-white rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
