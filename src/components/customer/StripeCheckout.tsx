@@ -75,6 +75,7 @@ function CheckoutForm({ amount, sessionId, seatIds, paymentMode, onSuccess, onCa
       <PaymentElement
         options={{
           layout: 'accordion',
+          paymentMethodOrder: ['apple_pay', 'google_pay', 'card'],
         }}
       />
 
