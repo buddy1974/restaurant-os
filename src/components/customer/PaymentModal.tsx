@@ -14,7 +14,7 @@ const seatEmoji: Record<string, string> = {
 
 type PaymentMode = 'unit' | 'group' | 'split_equal' | 'split_select';
 type PaymentMethod = 'cash' | 'card';
-type Step = 'mode' | 'method' | 'split_select' | 'confirm' | 'cash_waiting';
+type Step = 'mode' | 'method' | 'tip' | 'split_select' | 'confirm' | 'cash_waiting';
 
 interface Props {
   summary: SessionSummary;
@@ -29,7 +29,7 @@ interface Props {
   paidByCode?: string;
   onTransferHost: (newHostSeatId: string) => void;
   onClose: () => void;
-  onSuccess: (paymentMethod: 'cash' | 'card', paymentMode: string) => void;
+  onSuccess: (paymentMethod: 'cash' | 'card', paymentMode: string, tipAmount: number) => void;
 }
 
 export default function PaymentModal({
@@ -51,6 +51,7 @@ export default function PaymentModal({
   const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(sessionType === 'individual' ? 'unit' : null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([currentSeatId]);
+  const [tipPercent, setTipPercent] = useState<number>(0);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showStripe, setShowStripe] = useState(false);
@@ -69,23 +70,6 @@ export default function PaymentModal({
   const splitSelectTotal = summary.seats
     .filter((s) => selectedSeats.includes(s.id))
     .reduce((sum, s) => sum + Number(s.seat_total), 0);
-
-  function selectMode(mode: PaymentMode) {
-    setPaymentMode(mode);
-    if (mode === 'split_select') {
-      setStep('split_select');
-    } else {
-      setStep('method');
-    }
-  }
-
-  function toggleSeat(seatId: string) {
-    setSelectedSeats((prev) =>
-      prev.includes(seatId)
-        ? prev.filter((id) => id !== seatId)
-        : [...prev, seatId]
-    );
-  }
 
   function getPayingAmount(): number {
     switch (paymentMode) {
@@ -107,6 +91,26 @@ export default function PaymentModal({
     }
   }
 
+  const tipAmount = getPayingAmount() * (tipPercent / 100);
+  const totalWithTip = getPayingAmount() + tipAmount;
+
+  function selectMode(mode: PaymentMode) {
+    setPaymentMode(mode);
+    if (mode === 'split_select') {
+      setStep('split_select');
+    } else {
+      setStep('method');
+    }
+  }
+
+  function toggleSeat(seatId: string) {
+    setSelectedSeats((prev) =>
+      prev.includes(seatId)
+        ? prev.filter((id) => id !== seatId)
+        : [...prev, seatId]
+    );
+  }
+
   async function processPayment() {
     if (!paymentMode || !paymentMethod) return;
     setProcessing(true);
@@ -114,7 +118,7 @@ export default function PaymentModal({
 
     try {
       if (paymentMethod === 'cash') {
-        // Step 1 — Notify waiter FIRST via Telegram
+        // Notify waiter FIRST via Telegram
         console.log('[PaymentModal] cash payment - tableNumber:', tableNumber, 'seatCode:', currentSeatCode);
         await fetch('/api/call-waiter', {
           method: 'POST',
@@ -122,17 +126,17 @@ export default function PaymentModal({
           body: JSON.stringify({
             tableNumber,
             seatCode: currentSeatCode,
-            reason: `💰 Cash payment ready — please collect €${getPayingAmount().toFixed(2)} from ${currentSeatCode}`,
+            reason: `💰 Cash payment ready — please collect €${totalWithTip.toFixed(2)} from ${currentSeatCode}${tipPercent > 0 ? ` (incl. €${tipAmount.toFixed(2)} tip)` : ''}`,
           }),
         });
 
-        // Step 2 — Show waiting screen (do NOT mark paid yet)
+        // Show waiting screen (do NOT mark paid yet)
         setStep('cash_waiting');
         setProcessing(false);
         return;
       }
 
-      // Card payment — mark paid immediately
+      // Card — mark paid immediately
       const res = await fetch('/api/sessions/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -141,11 +145,12 @@ export default function PaymentModal({
           seatIds: getPayingSeatIds(),
           paymentMode,
           paymentMethod,
+          tipAmount,
         }),
       });
 
       if (!res.ok) throw new Error('Payment failed');
-      onSuccess(paymentMethod, paymentMode);
+      onSuccess(paymentMethod, paymentMode, tipAmount);
     } catch (err) {
       console.error('[PaymentModal] processPayment error:', err);
       setError('Payment could not be processed. Please try again.');
@@ -158,7 +163,6 @@ export default function PaymentModal({
     setProcessing(true);
     setError(null);
     try {
-      // NOW mark paid in DB after waiter has collected cash
       const res = await fetch('/api/sessions/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -167,11 +171,12 @@ export default function PaymentModal({
           seatIds: getPayingSeatIds(),
           paymentMode,
           paymentMethod: 'cash',
+          tipAmount,
         }),
       });
 
       if (!res.ok) throw new Error('Failed to confirm payment');
-      onSuccess('cash', paymentMode!);
+      onSuccess('cash', paymentMode!, tipAmount);
     } catch (err) {
       console.error('[PaymentModal] confirmCashPayment error:', err);
       setError('Could not confirm payment. Please try again.');
@@ -191,7 +196,8 @@ export default function PaymentModal({
               onClick={() => {
                 if (step === 'method') setStep('mode');
                 if (step === 'split_select') setStep('mode');
-                if (step === 'confirm') setStep('method');
+                if (step === 'tip') setStep('method');
+                if (step === 'confirm') setStep('tip');
               }}
               className="text-gray-400 text-sm"
             >← Back</button>
@@ -201,6 +207,7 @@ export default function PaymentModal({
             {!alreadyPaid && step === 'mode' && 'How do you want to pay?'}
             {!alreadyPaid && step === 'split_select' && 'Select seats to pay for'}
             {!alreadyPaid && step === 'method' && 'How would you like to pay?'}
+            {!alreadyPaid && step === 'tip' && 'Add a tip?'}
             {!alreadyPaid && step === 'confirm' && 'Confirm payment'}
             {!alreadyPaid && step === 'cash_waiting' && 'Payment pending'}
           </h2>
@@ -244,7 +251,6 @@ export default function PaymentModal({
             {/* STEP 1 — Mode Selection */}
             {step === 'mode' && (
               <div className="space-y-3">
-
                 {sessionType === 'individual' && (
                   <button
                     onClick={() => selectMode('unit')}
@@ -253,9 +259,7 @@ export default function PaymentModal({
                     <span className="text-3xl">🧾</span>
                     <div>
                       <p className="font-semibold text-gray-900">Pay my bill</p>
-                      <p className="text-sm text-gray-400">
-                        Your orders · {formatPrice(currentSeatTotal)}
-                      </p>
+                      <p className="text-sm text-gray-400">Your orders · {formatPrice(currentSeatTotal)}</p>
                     </div>
                   </button>
                 )}
@@ -269,9 +273,7 @@ export default function PaymentModal({
                       <span className="text-3xl">🧾</span>
                       <div>
                         <p className="font-semibold text-gray-900">Pay my share</p>
-                        <p className="text-sm text-gray-400">
-                          Only your orders · {formatPrice(currentSeatTotal)}
-                        </p>
+                        <p className="text-sm text-gray-400">Only your orders · {formatPrice(currentSeatTotal)}</p>
                       </div>
                     </button>
 
@@ -283,9 +285,7 @@ export default function PaymentModal({
                         <span className="text-3xl">👨‍👩‍👧</span>
                         <div>
                           <p className="font-semibold text-gray-900">Pay for everyone</p>
-                          <p className="text-sm text-gray-400">
-                            Full table · {formatPrice(summary.unpaidTotal)}
-                          </p>
+                          <p className="text-sm text-gray-400">Full table · {formatPrice(summary.unpaidTotal)}</p>
                         </div>
                       </button>
                     )}
@@ -313,9 +313,7 @@ export default function PaymentModal({
                         <span className="text-3xl">🤝</span>
                         <div>
                           <p className="font-semibold text-gray-900">Split with some</p>
-                          <p className="text-sm text-gray-400">
-                            Choose which seats to combine
-                          </p>
+                          <p className="text-sm text-gray-400">Choose which seats to combine</p>
                         </div>
                       </button>
                     )}
@@ -353,14 +351,10 @@ export default function PaymentModal({
                   {unpaidSeats.map((seat: SeatSummary) => (
                     <button
                       key={seat.id}
-                      onClick={() => {
-                        if (seat.id !== currentSeatId) toggleSeat(seat.id);
-                      }}
+                      onClick={() => { if (seat.id !== currentSeatId) toggleSeat(seat.id); }}
                       disabled={seat.id === currentSeatId}
                       className={`w-full border-2 rounded-xl p-4 flex justify-between items-center transition-colors ${
-                        selectedSeats.includes(seat.id)
-                          ? 'border-orange-500 bg-orange-50'
-                          : 'border-gray-100'
+                        selectedSeats.includes(seat.id) ? 'border-orange-500 bg-orange-50' : 'border-gray-100'
                       } ${seat.id === currentSeatId ? 'opacity-60' : ''}`}
                     >
                       <div className="flex items-center gap-3">
@@ -399,9 +393,7 @@ export default function PaymentModal({
                   <button
                     onClick={() => setPaymentMethod('cash')}
                     className={`w-full border-2 rounded-xl p-4 flex items-center gap-4 transition-colors ${
-                      paymentMethod === 'cash'
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200'
+                      paymentMethod === 'cash' ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
                     }`}
                   >
                     <span className="text-3xl">💵</span>
@@ -414,9 +406,7 @@ export default function PaymentModal({
                   <button
                     onClick={() => setPaymentMethod('card')}
                     className={`w-full border-2 rounded-xl p-4 flex items-center gap-4 transition-colors ${
-                      paymentMethod === 'card'
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200'
+                      paymentMethod === 'card' ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
                     }`}
                   >
                     <span className="text-3xl">💳</span>
@@ -433,13 +423,7 @@ export default function PaymentModal({
                 </div>
 
                 <button
-                  onClick={() => {
-                    if (paymentMethod === 'card') {
-                      setShowStripe(true);
-                    } else {
-                      setStep('confirm');
-                    }
-                  }}
+                  onClick={() => setStep('tip')}
                   disabled={!paymentMethod}
                   className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold disabled:opacity-40"
                 >
@@ -448,7 +432,70 @@ export default function PaymentModal({
               </div>
             )}
 
-            {/* STEP 3 — Confirm */}
+            {/* STEP 3 — Tip */}
+            {step === 'tip' && (
+              <div>
+                <p className="text-sm text-gray-500 text-center mb-4">
+                  Would you like to add a tip for the staff?
+                </p>
+
+                <div className="grid grid-cols-4 gap-2 mb-6">
+                  {[0, 5, 10, 15].map((pct) => (
+                    <button
+                      key={pct}
+                      onClick={() => setTipPercent(pct)}
+                      className={`py-3 rounded-xl font-bold text-sm transition-all ${
+                        tipPercent === pct
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {pct === 0 ? 'None' : `${pct}%`}
+                    </button>
+                  ))}
+                </div>
+
+                {tipPercent > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-center">
+                    <p className="text-sm text-green-700">
+                      🙏 Thank you! Adding <strong>€{tipAmount.toFixed(2)}</strong> tip
+                    </p>
+                  </div>
+                )}
+
+                <div className="border-t pt-4 mb-4 space-y-1">
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>Bill</span>
+                    <span>€{getPayingAmount().toFixed(2)}</span>
+                  </div>
+                  {tipPercent > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Tip ({tipPercent}%)</span>
+                      <span>+ €{tipAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Total</span>
+                    <span className="text-orange-600">€{totalWithTip.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (paymentMethod === 'card') {
+                      setShowStripe(true);
+                    } else {
+                      setStep('confirm');
+                    }
+                  }}
+                  className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg"
+                >
+                  Continue
+                </button>
+              </div>
+            )}
+
+            {/* STEP 4 — Confirm (cash only) */}
             {step === 'confirm' && (
               <div>
                 <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2">
@@ -480,27 +527,37 @@ export default function PaymentModal({
                     </div>
                   )}
 
-                  <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                    <span>Total</span>
-                    <span>{formatPrice(getPayingAmount())}</span>
+                  <div className="border-t pt-2 space-y-1">
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>Bill</span>
+                      <span>{formatPrice(getPayingAmount())}</span>
+                    </div>
+                    {tipPercent > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Tip ({tipPercent}%)</span>
+                        <span>+ {formatPrice(tipAmount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total</span>
+                      <span className="text-orange-600">{formatPrice(totalWithTip)}</span>
+                    </div>
                   </div>
                 </div>
 
-                {error && (
-                  <p className="text-red-500 text-sm text-center mb-4">{error}</p>
-                )}
+                {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
 
                 <button
                   onClick={processPayment}
                   disabled={processing}
                   className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-50"
                 >
-                  {processing ? 'Processing...' : `Confirm Payment · ${formatPrice(getPayingAmount())}`}
+                  {processing ? 'Processing...' : `Confirm Payment · ${formatPrice(totalWithTip)}`}
                 </button>
               </div>
             )}
 
-            {/* STEP 4 — Cash Waiting */}
+            {/* STEP 5 — Cash Waiting */}
             {step === 'cash_waiting' && (
               <div className="text-center py-6">
                 <div className="text-6xl mb-4">🔔</div>
@@ -512,18 +569,18 @@ export default function PaymentModal({
                 </p>
                 <div className="bg-orange-50 border-2 border-orange-200 rounded-xl py-4 px-6 mb-6">
                   <p className="text-3xl font-black text-orange-600">
-                    €{getPayingAmount().toFixed(2)}
+                    €{totalWithTip.toFixed(2)}
                   </p>
-                  <p className="text-xs text-orange-400 mt-1">Cash</p>
+                  <p className="text-xs text-orange-400 mt-1">
+                    Cash{tipPercent > 0 ? ` · incl. €${tipAmount.toFixed(2)} tip` : ''}
+                  </p>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-6 text-sm text-blue-600">
                   💡 Tap the button below <strong>only after</strong> the waiter has collected your cash.
                 </div>
 
-                {error && (
-                  <p className="text-red-500 text-sm mb-3">{error}</p>
-                )}
+                {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
                 <button
                   onClick={confirmCashPayment}
@@ -553,14 +610,14 @@ export default function PaymentModal({
               <button onClick={() => setShowStripe(false)} className="text-gray-400 text-2xl">✕</button>
             </div>
             <StripeCheckout
-              amount={getPayingAmount()}
+              amount={totalWithTip}
               sessionId={summary.sessionId}
               seatIds={getPayingSeatIds()}
               paymentMode={paymentMode || 'unit'}
-              tableNumber={0}
+              tableNumber={tableNumber}
               onSuccess={() => {
                 setShowStripe(false);
-                onSuccess('card', paymentMode || 'unit');
+                onSuccess('card', paymentMode || 'unit', tipAmount);
               }}
               onCancel={() => setShowStripe(false)}
             />

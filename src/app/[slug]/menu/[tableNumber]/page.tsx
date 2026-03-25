@@ -56,6 +56,7 @@ export default function MenuPage({
   const [hostSeatCode, setHostSeatCode] = useState<string | null>(null);
   const [groupCode, setGroupCode] = useState<string | null>(null);
   const [showGroupCode, setShowGroupCode] = useState(false);
+  const [paymentComplete, setPaymentComplete] = useState(false);
   const [receipt, setReceipt] = useState<{
     receipt_number: string;
     restaurant_name: string;
@@ -250,7 +251,8 @@ export default function MenuPage({
   async function generateReceipt(
     paymentMethod: string,
     paymentMode: string,
-    items: { name: string; price: number; quantity: number }[]
+    items: { name: string; price: number; quantity: number }[],
+    tipAmount = 0
   ) {
     try {
       const res = await fetch('/api/receipts', {
@@ -265,6 +267,7 @@ export default function MenuPage({
           paymentMethod,
           paymentMode,
           items,
+          tipAmount,
         }),
       });
       const data = await res.json();
@@ -611,8 +614,9 @@ export default function MenuPage({
             await refetchSummary();
           }}
           onClose={() => setShowPaymentModal(false)}
-          onSuccess={async (paymentMethod, paymentMode) => {
+          onSuccess={async (paymentMethod, paymentMode, tipAmount) => {
             setShowPaymentModal(false);
+            setPaymentComplete(true);
             if (session?.id) localStorage.removeItem(`cart_${session.id}`);
             clearCart();
             setOrderSuccess(true);
@@ -625,14 +629,14 @@ export default function MenuPage({
               s.items.map((i) => ({ name: i.name, price: i.price, quantity: i.quantity }))
             ) || []);
             const receiptItems = paymentMode === 'unit' ? seatItems : allItems;
-            await generateReceipt(paymentMethod, paymentMode, receiptItems);
+            await generateReceipt(paymentMethod, paymentMode, receiptItems, tipAmount);
             refetchSummary();
             setTimeout(() => setOrderSuccess(false), 6000);
           }}
         />
       )}
 
-      {session && seat && table && (
+      {session && seat && table && !paymentComplete && (
         <Bestellboard
           summary={summary}
           currentSeatId={seat.id}
@@ -661,8 +665,9 @@ export default function MenuPage({
           sessionId={session!.id}
           tableNumber={table?.number || 0}
           onClose={() => setShowGroupBill(false)}
-          onSuccess={async (paymentMethod) => {
+          onSuccess={async (paymentMethod, tipAmount) => {
             setShowGroupBill(false);
+            setPaymentComplete(true);
             if (session?.id) localStorage.removeItem(`cart_${session.id}`);
             clearCart();
             setOrderSuccess(true);
@@ -670,7 +675,7 @@ export default function MenuPage({
             const allItems = (summary?.seats.flatMap((s) =>
               s.items.map((i) => ({ name: i.name, price: i.price, quantity: i.quantity }))
             ) || []);
-            await generateReceipt(paymentMethod, 'group', allItems);
+            await generateReceipt(paymentMethod, 'group', allItems, tipAmount);
             refetchSummary();
             setTimeout(() => setOrderSuccess(false), 6000);
           }}

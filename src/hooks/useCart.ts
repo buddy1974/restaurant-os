@@ -30,6 +30,16 @@ export function useCart(sessionId: string | null): UseCartResult {
     }
   });
 
+  // Reset cart state when session changes
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      setCart(stored ? JSON.parse(stored) : []);
+    } catch {
+      setCart([]);
+    }
+  }, [storageKey]);
+
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(cart));
   }, [cart, storageKey]);

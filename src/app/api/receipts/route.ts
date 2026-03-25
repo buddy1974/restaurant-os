@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       paymentMethod,
       paymentMode,
       items,
+      tipAmount: rawTip,
     }: {
       sessionId: string;
       seatId?: string;
@@ -32,7 +33,10 @@ export async function POST(request: NextRequest) {
       paymentMethod: string;
       paymentMode: string;
       items: ReceiptItem[];
+      tipAmount?: number;
     } = await request.json();
+
+    const tipAmount = Number(rawTip || 0);
 
     // Calculate totals
     const subtotal = items.reduce(
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest) {
     );
     const vatRate = 19.00;
     const vatAmount = subtotal * (vatRate / (100 + vatRate));
-    const total = subtotal;
+    const total = subtotal + tipAmount;
 
     // Generate unique receipt number
     const year = new Date().getFullYear();
@@ -54,12 +58,12 @@ export async function POST(request: NextRequest) {
       INSERT INTO receipts (
         receipt_number, restaurant_id, session_id, seat_id,
         table_number, seat_code, payment_method, payment_mode,
-        subtotal, vat_rate, vat_amount, total, items
+        subtotal, vat_rate, vat_amount, tip_amount, total, items
       ) VALUES (
         ${receiptNumber}, ${restaurantId}, ${sessionId}, ${seatId || null},
         ${tableNumber}, ${seatCode || null}, ${paymentMethod}, ${paymentMode},
         ${subtotal.toFixed(2)}, ${vatRate}, ${vatAmount.toFixed(2)},
-        ${total.toFixed(2)}, ${JSON.stringify(items)}
+        ${tipAmount.toFixed(2)}, ${total.toFixed(2)}, ${JSON.stringify(items)}
       )
       RETURNING *
     `;
@@ -96,6 +100,7 @@ export async function POST(request: NextRequest) {
       `<b>ITEMS:</b>\n${itemLines}\n\n` +
       `Subtotal: €${subtotal.toFixed(2)}\n` +
       `VAT (19%): €${vatAmount.toFixed(2)}\n` +
+      (tipAmount > 0 ? `Tip: €${tipAmount.toFixed(2)}\n` : '') +
       `<b>TOTAL: €${total.toFixed(2)}</b>\n\n` +
       `${paymentMethod === 'card' ? '💳' : '💵'} ${paymentMethod === 'card' ? 'Card' : 'Cash'} payment\n` +
       `🔑 Ref: ${receiptNumber}`
@@ -107,6 +112,7 @@ export async function POST(request: NextRequest) {
         restaurant_name: (restaurant as { name: string }).name,
         vat_amount: vatAmount.toFixed(2),
         subtotal: subtotal.toFixed(2),
+        tip_amount: tipAmount.toFixed(2),
         total: total.toFixed(2),
         items,
       }

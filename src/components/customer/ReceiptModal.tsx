@@ -17,6 +17,7 @@ interface Receipt {
   payment_mode: string;
   subtotal: string;
   vat_amount: string;
+  tip_amount?: string;
   total: string;
   items: ReceiptItem[];
   issued_at: string;
@@ -119,6 +120,12 @@ export default function ReceiptModal({ receipt, onClose }: Props) {
                 <span>incl. VAT (19%)</span>
                 <span>{formatPrice(receipt.vat_amount)}</span>
               </div>
+              {receipt.tip_amount && Number(receipt.tip_amount) > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Tip</span>
+                  <span>+{formatPrice(receipt.tip_amount)}</span>
+                </div>
+              )}
               <div className="flex justify-between font-black text-lg text-gray-900 pt-1 border-t border-gray-200">
                 <span>TOTAL</span>
                 <span className="text-orange-600">{formatPrice(receipt.total)}</span>
