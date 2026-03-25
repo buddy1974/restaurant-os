@@ -112,7 +112,11 @@ export default function PaymentModal({
   }
 
   async function processPayment() {
-    if (!paymentMode || !paymentMethod) return;
+    console.log('[PaymentModal] processPayment called — mode:', paymentMode, 'method:', paymentMethod, 'table:', tableNumber);
+    if (!paymentMode || !paymentMethod) {
+      console.warn('[PaymentModal] early return — paymentMode or paymentMethod is null');
+      return;
+    }
     setProcessing(true);
     setError(null);
 
