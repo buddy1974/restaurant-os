@@ -636,7 +636,7 @@ export default function MenuPage({
         />
       )}
 
-      {session && seat && table && !paymentComplete && (
+      {session && seat && table && !paymentComplete && !showPaymentModal && !showGroupBill && (
         <Bestellboard
           summary={summary}
           currentSeatId={seat.id}
