@@ -62,6 +62,11 @@ export function useCart(sessionId: string | null): UseCartResult {
 
   function clearCart() {
     setCart([]);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      // ignore
+    }
   }
 
   const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);

@@ -54,6 +54,7 @@ export default function Bestellboard({
   const [expanded, setExpanded] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestionsFetched, setSuggestionsFetched] = useState(false);
   const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
   const [callingWaiter, setCallingWaiter] = useState(false);
   const [waiterCalled, setWaiterCalled] = useState(false);
@@ -85,20 +86,28 @@ export default function Bestellboard({
     prevItemCount.current = currentCount;
   }, [myItems.length]);
 
-  // Reset suggestions when item count changes (must run before fetch effect)
+  // Reset fetched flag when item count changes so new orders trigger fresh suggestions
   useEffect(() => {
-    setSuggestions([]);
+    setSuggestionsFetched(false);
   }, [myItems.length]);
 
-  // Fetch AI suggestions — only when suggestions are empty
+  // Fetch AI suggestions — single clean effect with fetched guard
   useEffect(() => {
-    if (myItems.length === 0 || !restaurantId || !summary?.sessionId) return;
-    if (suggestions.length > 0) return; // Already have suggestions for this order state
+    if (myItems.length === 0) {
+      setSuggestions([]);
+      setSuggestionsFetched(false);
+      return;
+    }
+
+    if (suggestionsFetched) return;
+    if (!restaurantId || restaurantId === '') return;
 
     let cancelled = false;
 
     async function fetchSuggestions() {
       setLoadingSuggestions(true);
+      console.log('[Bestellboard] calling /api/ai-suggest with', myItems.length, 'items, restaurantId:', restaurantId);
+
       try {
         const res = await fetch('/api/ai-suggest', {
           method: 'POST',
@@ -106,15 +115,24 @@ export default function Bestellboard({
           body: JSON.stringify({
             orderedItems: myItems,
             restaurantId,
-            sessionId: summary?.sessionId,
+            sessionId: summary?.sessionId || '',
           }),
         });
+
+        console.log('[Bestellboard] ai-suggest response status:', res.status);
         const data = await res.json();
-        if (!cancelled && data.suggestions?.length > 0) {
-          setSuggestions(data.suggestions);
+        console.log('[Bestellboard] ai-suggest data:', JSON.stringify(data));
+
+        if (!cancelled) {
+          setSuggestions(data.suggestions || []);
+          setSuggestionsFetched(true);
         }
-      } catch {
-        if (!cancelled) setSuggestions([]);
+      } catch (err) {
+        console.error('[Bestellboard] ai-suggest error:', err);
+        if (!cancelled) {
+          setSuggestions([]);
+          setSuggestionsFetched(true);
+        }
       } finally {
         if (!cancelled) setLoadingSuggestions(false);
       }
@@ -123,7 +141,7 @@ export default function Bestellboard({
     fetchSuggestions();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myItems.length, restaurantId, summary?.sessionId, suggestions.length]);
+  }, [myItems.length, restaurantId, suggestionsFetched]);
 
   async function callWaiter(reason: string) {
     setCallingWaiter(true);

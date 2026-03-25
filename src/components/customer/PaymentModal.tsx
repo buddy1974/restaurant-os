@@ -128,7 +128,7 @@ export default function PaymentModal({
 
       if (paymentMethod === 'cash') {
         // Notify waiter via Telegram
-        console.log('Calling waiter for cash payment, table:', tableNumber);
+        console.log('[PaymentModal] cash payment - tableNumber:', tableNumber, 'seatCode:', currentSeatCode);
         await fetch('/api/call-waiter', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

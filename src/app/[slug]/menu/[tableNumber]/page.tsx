@@ -164,6 +164,13 @@ export default function MenuPage({
     loadSession();
   }, [table]);
 
+  // Debug: log table load
+  useEffect(() => {
+    if (table) {
+      console.log('[MenuPage] table loaded:', table.number, table.restaurant_id);
+    }
+  }, [table]);
+
   // Auto-refresh summary every 15 seconds
   useEffect(() => {
     if (!session) return;
