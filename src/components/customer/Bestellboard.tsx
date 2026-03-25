@@ -87,7 +87,7 @@ export default function Bestellboard({
 
   // Fetch AI suggestions when item count changes
   useEffect(() => {
-    if (myItems.length === 0) return;
+    if (myItems.length === 0 || !restaurantId) return;
     let cancelled = false;
 
     async function fetchSuggestions() {
@@ -114,7 +114,7 @@ export default function Bestellboard({
     fetchSuggestions();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myItems.length, restaurantId]);
+  }, [myItems.length, restaurantId, summary?.sessionId]);
 
   async function callWaiter(reason: string) {
     setCallingWaiter(true);

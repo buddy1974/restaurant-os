@@ -18,9 +18,10 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
   sessionId: string;
+  tableNumber: number;
 }
 
-export default function GroupBillModal({ summary, hostSeatCode, onClose, onSuccess, sessionId }: Props) {
+export default function GroupBillModal({ summary, hostSeatCode, onClose, onSuccess, sessionId, tableNumber }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | null>(null);
   const [processing, setProcessing] = useState(false);
   const [step, setStep] = useState<'bill' | 'method' | 'confirm'>('bill');
@@ -45,6 +46,20 @@ export default function GroupBillModal({ summary, hostSeatCode, onClose, onSucce
         }),
       });
       if (!res.ok) throw new Error('Payment failed');
+
+      // If cash payment, notify waiter via Telegram
+      if (paymentMethod === 'cash') {
+        await fetch('/api/call-waiter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tableNumber,
+            seatCode: hostSeatCode,
+            reason: `💰 Group cash payment ready — please collect €${summary.grandTotal.toFixed(2)} from ${hostSeatCode}`,
+          }),
+        }).catch(console.error);
+      }
+
       onSuccess();
     } catch {
       alert('Payment failed. Please try again.');

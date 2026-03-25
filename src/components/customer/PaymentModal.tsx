@@ -24,6 +24,7 @@ interface Props {
   isHost: boolean;
   paymentLockedBy: string | null;
   sessionId: string;
+  tableNumber: number;
   alreadyPaid: boolean;
   paidByCode?: string;
   onTransferHost: (newHostSeatId: string) => void;
@@ -39,14 +40,15 @@ export default function PaymentModal({
   isHost,
   paymentLockedBy,
   sessionId,
+  tableNumber,
   alreadyPaid,
   paidByCode,
   onTransferHost,
   onClose,
   onSuccess,
 }: Props) {
-  const [step, setStep] = useState<Step>('mode');
-  const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(null);
+  const [step, setStep] = useState<Step>(sessionType === 'individual' ? 'method' : 'mode');
+  const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(sessionType === 'individual' ? 'unit' : null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([currentSeatId]);
   const [processing, setProcessing] = useState(false);
@@ -123,6 +125,20 @@ export default function PaymentModal({
       });
 
       if (!res.ok) throw new Error('Payment failed');
+
+      // If cash payment, notify waiter via Telegram
+      if (paymentMethod === 'cash') {
+        await fetch('/api/call-waiter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tableNumber,
+            seatCode: currentSeatCode,
+            reason: `💰 Cash payment ready — please collect €${getPayingAmount().toFixed(2)}`,
+          }),
+        }).catch(console.error);
+      }
+
       onSuccess();
     } catch {
       setError('Payment could not be processed. Please try again.');
@@ -137,7 +153,7 @@ export default function PaymentModal({
 
         {/* Header */}
         <div className="flex justify-between items-center mb-5">
-          {step !== 'mode' && !alreadyPaid ? (
+          {step !== 'mode' && !alreadyPaid && !(sessionType === 'individual' && step === 'method') ? (
             <button
               onClick={() => {
                 if (step === 'method') setStep('mode');
@@ -151,7 +167,7 @@ export default function PaymentModal({
             {alreadyPaid && 'Bill settled'}
             {!alreadyPaid && step === 'mode' && 'How do you want to pay?'}
             {!alreadyPaid && step === 'split_select' && 'Select seats to pay for'}
-            {!alreadyPaid && step === 'method' && 'Payment method'}
+            {!alreadyPaid && step === 'method' && 'How would you like to pay?'}
             {!alreadyPaid && step === 'confirm' && 'Confirm payment'}
           </h2>
           <button onClick={onClose} className="text-gray-400 text-2xl">✕</button>

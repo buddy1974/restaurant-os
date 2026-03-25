@@ -134,7 +134,7 @@ export default function MenuPage({
             const summaryRes = await fetch(`/api/sessions/summary?sessionId=${activeSession.id}`);
             const summaryData = await summaryRes.json();
             const hostSeat = summaryData.seats?.find((s: { id: string }) => s.id === summaryData.hostSeatId);
-            if (hostSeat) {
+            if (hostSeat && activeSession.session_type === 'group') {
               setHostSeatCode(hostSeat.seat_code);
               setShowJoiningScreen(true);
             }
@@ -342,8 +342,8 @@ export default function MenuPage({
 
       {/* Order success banner */}
       {orderSuccess && (
-        <div className="bg-green-500 text-white text-center py-3 text-sm font-medium">
-          ✓ Order placed successfully!
+        <div className="bg-green-500 text-white text-center py-3 text-sm font-semibold fixed top-0 left-0 right-0 z-50">
+          ✅ Payment confirmed! Thank you — enjoy your meal 🍽️
         </div>
       )}
 
@@ -548,6 +548,7 @@ export default function MenuPage({
           isHost={isHost}
           paymentLockedBy={summary.paymentLockedBy}
           sessionId={summary.sessionId}
+          tableNumber={table?.number || 0}
           alreadyPaid={alreadyPaid}
           paidByCode={paidBySeat?.seat_code as string | undefined}
           onTransferHost={async (newHostSeatId) => {
@@ -597,6 +598,7 @@ export default function MenuPage({
           summary={summary}
           hostSeatCode={seat.seat_code}
           sessionId={session!.id}
+          tableNumber={table?.number || 0}
           onClose={() => setShowGroupBill(false)}
           onSuccess={() => {
             setShowGroupBill(false);

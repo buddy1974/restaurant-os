@@ -58,6 +58,23 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Telegram notification for card payment
+      try {
+        const [sessionInfo] = await sql`
+          SELECT t.number as table_number
+          FROM tables t
+          JOIN table_sessions ts ON ts.table_id = t.id
+          WHERE ts.id = ${sessionId}
+        `;
+        if (sessionInfo) {
+          await sendTelegramMessage(
+            `💳 <b>Card Payment Confirmed</b>\n\n📍 Table ${(sessionInfo as { table_number: number }).table_number}\n✅ Payment processed successfully via Stripe`
+          );
+        }
+      } catch (err) {
+        console.error('Telegram notification error:', err);
+      }
+
       return NextResponse.json({ success: true });
     }
 
