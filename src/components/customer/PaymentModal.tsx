@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { SessionSummary, SeatSummary } from '@/hooks/useSessionSummary';
 import StripeCheckout from '@/components/customer/StripeCheckout';
 
@@ -190,7 +191,7 @@ export default function PaymentModal({
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40">
       <div className="bg-white rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto pointer-events-auto">
 
@@ -629,6 +630,7 @@ export default function PaymentModal({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
