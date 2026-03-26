@@ -67,7 +67,16 @@ export default function HomePage() {
           </div>
         </div>
 
-        <p className="text-xs text-gray-600">
+        <div className="mt-4">
+          <Link
+            href="/register"
+            className="block w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl py-4 px-4 text-sm font-bold transition-colors text-center"
+          >
+            🚀 Register your restaurant — it&apos;s free
+          </Link>
+        </div>
+
+        <p className="text-xs text-gray-600 mt-4">
           Scan a table QR code to experience the real customer flow
         </p>
 
