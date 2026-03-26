@@ -84,6 +84,27 @@ export async function PATCH(request: NextRequest) {
       await sql`UPDATE orders SET kitchen_status = ${status} WHERE id = ${orderId}`;
     }
 
+    // Send push notification when order is marked ready
+    if (status === 'ready' && orderId) {
+      try {
+        const [order] = await sql`SELECT session_id FROM orders WHERE id = ${orderId}`;
+        if (order) {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          await fetch(`${appUrl}/api/push/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: order.session_id,
+              title: '🍽️ Your food is ready!',
+              body: 'Your order is ready to be served. Enjoy your meal!',
+            }),
+          });
+        }
+      } catch (e) {
+        console.error('[kitchen] push notification failed:', e);
+      }
+    }
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[kitchen/orders PATCH]', err);

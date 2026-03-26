@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { SessionSummary, SeatSummary } from '@/hooks/useSessionSummary';
 import { useLanguage } from '@/lib/LanguageContext';
 import { t, isRTL } from '@/lib/translations';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const seatEmoji: Record<string, string> = {
   APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -54,6 +55,10 @@ export default function Bestellboard({
   onCallWaiter,
 }: Props) {
   const { locale } = useLanguage();
+  const { permission, subscribed, subscribe } = usePushNotifications(
+    summary?.sessionId || null,
+    currentSeatId || null
+  );
   const [expanded, setExpanded] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -421,6 +426,21 @@ export default function Bestellboard({
                         </button>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Push notification subscribe */}
+                {!subscribed && permission !== 'denied' && (
+                  <button
+                    onClick={subscribe}
+                    className="w-full bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-xl py-3 text-sm font-semibold text-gray-300 transition-colors mb-2"
+                  >
+                    🔔 Notify me when food is ready
+                  </button>
+                )}
+                {subscribed && (
+                  <div className="w-full text-center text-xs text-green-400 py-2 mb-2">
+                    ✅ You&apos;ll be notified when your food is ready
                   </div>
                 )}
 
