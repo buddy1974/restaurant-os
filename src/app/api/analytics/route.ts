@@ -12,36 +12,29 @@ export async function GET(request: NextRequest) {
     const [restaurant] = await sql`SELECT id FROM restaurants WHERE slug = ${slug}`;
     if (!restaurant) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const rid = restaurant.id;
-
     const days = period === '30d' ? 30 : period === '1d' ? 1 : 7;
 
     // Total revenue
     const [revenue] = await sql`
       SELECT
-        COALESCE(SUM(r.total), 0) as total_revenue,
-        COALESCE(SUM(r.tip_amount), 0) as total_tips,
-        COUNT(r.id) as total_receipts
-      FROM receipts r
-      JOIN seats s ON s.id = r.seat_id
-      JOIN table_sessions ts ON ts.id = s.session_id
-      JOIN tables t ON t.id = ts.table_id
-      WHERE t.restaurant_id = ${rid}
-        AND r.created_at >= now() - (${days} || ' days')::interval
+        COALESCE(SUM(total), 0) as total_revenue,
+        COALESCE(SUM(tip_amount), 0) as total_tips,
+        COUNT(id) as total_receipts
+      FROM receipts
+      WHERE restaurant_id = ${rid}
+        AND issued_at >= now() - (${days} || ' days')::interval
     `;
 
     // Revenue by day
     const revenueByDay = await sql`
       SELECT
-        DATE(r.created_at) as day,
-        COALESCE(SUM(r.total), 0) as revenue,
-        COUNT(r.id) as orders
-      FROM receipts r
-      JOIN seats s ON s.id = r.seat_id
-      JOIN table_sessions ts ON ts.id = s.session_id
-      JOIN tables t ON t.id = ts.table_id
-      WHERE t.restaurant_id = ${rid}
-        AND r.created_at >= now() - (${days} || ' days')::interval
-      GROUP BY DATE(r.created_at)
+        DATE(issued_at) as day,
+        COALESCE(SUM(total), 0) as revenue,
+        COUNT(id) as orders
+      FROM receipts
+      WHERE restaurant_id = ${rid}
+        AND issued_at >= now() - (${days} || ' days')::interval
+      GROUP BY DATE(issued_at)
       ORDER BY day ASC
     `;
 
@@ -65,15 +58,13 @@ export async function GET(request: NextRequest) {
     // Payment method split
     const paymentSplit = await sql`
       SELECT
-        o.payment_method,
+        payment_method,
         COUNT(*) as count,
-        SUM(o.total) as revenue
-      FROM orders o
-      JOIN tables t ON t.id = o.table_id
-      WHERE t.restaurant_id = ${rid}
-        AND o.created_at >= now() - (${days} || ' days')::interval
-        AND o.payment_status = 'paid'
-      GROUP BY o.payment_method
+        SUM(total) as revenue
+      FROM receipts
+      WHERE restaurant_id = ${rid}
+        AND issued_at >= now() - (${days} || ' days')::interval
+      GROUP BY payment_method
     `;
 
     // Busiest hours
