@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { LanguageProvider } from '@/lib/LanguageContext';
+import LanguagePicker from '@/components/customer/LanguagePicker';
 
 const seatEmoji: Record<string, string> = {
   APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -123,6 +125,7 @@ export default function KitchenPage({ params }: { params: Promise<{ slug: string
   );
 
   return (
+    <LanguageProvider>
     <div className="min-h-screen bg-gray-950 text-white p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -130,7 +133,8 @@ export default function KitchenPage({ params }: { params: Promise<{ slug: string
           <h1 className="text-2xl font-black tracking-wider uppercase">🍳 Kitchen Display</h1>
           <p className="text-gray-400 text-sm mt-1">Auto-refreshes every 8s · Last update: {lastUpdated.toLocaleTimeString()}</p>
         </div>
-        <div className="flex gap-4 text-sm">
+        <div className="flex items-center gap-4 text-sm">
+          <LanguagePicker />
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"/><span>New ({newOrders.length})</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"/><span>Preparing ({preparingOrders.length})</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"/><span>Ready ({readyOrders.length})</span></div>
@@ -211,5 +215,6 @@ export default function KitchenPage({ params }: { params: Promise<{ slug: string
         </div>
       )}
     </div>
+    </LanguageProvider>
   );
 }

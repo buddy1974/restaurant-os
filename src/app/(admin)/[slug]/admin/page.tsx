@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { LanguageProvider } from '@/lib/LanguageContext';
+import LanguagePicker from '@/components/customer/LanguagePicker';
 
 interface Category {
   id: string;
@@ -263,11 +265,13 @@ export default function AdminPage({
   }
 
   return (
+    <LanguageProvider>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
         <div className="flex items-center gap-4">
+          <LanguagePicker />
           <Link
             href={`/${slug}/analytics`}
             className="text-sm text-orange-500 font-semibold hover:underline"
@@ -775,5 +779,6 @@ export default function AdminPage({
         </a>
       </div>
     </div>
+    </LanguageProvider>
   );
 }
