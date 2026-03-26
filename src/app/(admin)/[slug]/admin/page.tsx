@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 
 interface Category {
   id: string;
@@ -266,7 +267,15 @@ export default function AdminPage({
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-        <span className="text-sm text-gray-400 uppercase tracking-wide">{slug}</span>
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/${slug}/analytics`}
+            className="text-sm text-orange-500 font-semibold hover:underline"
+          >
+            📊 View Analytics
+          </Link>
+          <span className="text-sm text-gray-400 uppercase tracking-wide">{slug}</span>
+        </div>
       </div>
 
       {/* Tabs */}
