@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     `;
 
     const items = await sql`
-      SELECT id, category_id, name, description, price,
+      SELECT id, category_id, name, description, price, image_url,
              is_drink, is_popular, available, upsell_group, sort_order
       FROM menu_items
       WHERE restaurant_id = (SELECT id FROM restaurants WHERE slug = ${slug})
