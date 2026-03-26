@@ -592,14 +592,28 @@ export default function AdminPage({
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setItemForm({ ...itemForm, image_url: reader.result as string });
-                        };
-                        reader.readAsDataURL(file);
+                        setFetchingImage(true);
+                        try {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          const res = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData,
+                          });
+                          const data = await res.json();
+                          if (data.url) {
+                            setItemForm(prev => ({ ...prev, image_url: data.url }));
+                          } else {
+                            console.error('Upload error:', data.error);
+                          }
+                        } catch (err) {
+                          console.error('Upload failed:', err);
+                        } finally {
+                          setFetchingImage(false);
+                        }
                       }}
                     />
                   </label>
