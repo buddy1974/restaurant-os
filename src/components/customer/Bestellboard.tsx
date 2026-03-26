@@ -435,12 +435,12 @@ export default function Bestellboard({
                     onClick={subscribe}
                     className="w-full bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-xl py-3 text-sm font-semibold text-gray-300 transition-colors mb-2"
                   >
-                    🔔 Notify me when food is ready
+                    🔔 {t(locale, 'notifyFood')}
                   </button>
                 )}
                 {subscribed && (
                   <div className="w-full text-center text-xs text-green-400 py-2 mb-2">
-                    ✅ You&apos;ll be notified when your food is ready
+                    ✅ {t(locale, 'foodReadyNotified')}
                   </div>
                 )}
 

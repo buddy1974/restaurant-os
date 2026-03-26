@@ -77,6 +77,8 @@ export const translations = {
     needCutlery: 'Need cutlery',
     cancel: 'Cancel',
     addedToCart: '✓ Added!',
+    notifyFood: 'Notify me when food is ready',
+    foodReadyNotified: "You'll be notified when your food is ready",
   },
   de: {
     welcome: 'Willkommen 👋',
@@ -148,6 +150,8 @@ export const translations = {
     needCutlery: 'Besteck benötigt',
     cancel: 'Abbrechen',
     addedToCart: '✓ Hinzugefügt!',
+    notifyFood: 'Benachrichtige mich wenn Essen fertig ist',
+    foodReadyNotified: 'Sie werden benachrichtigt wenn Ihr Essen fertig ist',
   },
   tr: {
     welcome: 'Hoş geldiniz 👋',
@@ -219,6 +223,8 @@ export const translations = {
     needCutlery: 'Çatal bıçak lazım',
     cancel: 'İptal',
     addedToCart: '✓ Eklendi!',
+    notifyFood: 'Yemek hazır olduğunda beni bildir',
+    foodReadyNotified: 'Yemeğiniz hazır olduğunda bildirim alacaksınız',
   },
   fr: {
     welcome: 'Bienvenue 👋',
@@ -290,6 +296,8 @@ export const translations = {
     needCutlery: 'Besoin de couverts',
     cancel: 'Annuler',
     addedToCart: '✓ Ajouté!',
+    notifyFood: 'Me notifier quand la nourriture est prête',
+    foodReadyNotified: 'Vous serez notifié quand votre nourriture sera prête',
   },
   ar: {
     welcome: 'مرحباً 👋',
@@ -361,6 +369,8 @@ export const translations = {
     needCutlery: 'أحتاج أدوات مائدة',
     cancel: 'إلغاء',
     addedToCart: '✓ تمت الإضافة!',
+    notifyFood: 'أخبرني عندما يكون الطعام جاهزاً',
+    foodReadyNotified: 'ستتلقى إشعاراً عندما يكون طعامك جاهزاً',
   },
 } as const;
 

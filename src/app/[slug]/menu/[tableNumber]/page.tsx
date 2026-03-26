@@ -392,7 +392,7 @@ export default function MenuPage({
           <div className="flex items-center gap-3">
             {seat && (
               <div className="text-center bg-orange-50 border border-orange-200 rounded-xl px-3 py-1.5">
-                <p className="text-xs text-orange-400 font-medium leading-none">Your seat</p>
+                <p className="text-xs text-orange-400 font-medium leading-none">{t(locale as Locale, 'yourSeat')}</p>
                 <p className="text-sm font-bold text-orange-600 leading-tight">
                   {seatEmoji[seat.seat_code] || '🪑'} {seat.seat_code}
                 </p>
