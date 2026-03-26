@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { LanguageProvider } from '@/lib/LanguageContext';
+import { LanguageProvider, useLanguage } from '@/lib/LanguageContext';
 import LanguagePicker from '@/components/customer/LanguagePicker';
+import { t, Locale } from '@/lib/translations';
 
 interface Category {
   id: string;
@@ -35,12 +36,8 @@ const emptyItem = {
   image_url: '',
 };
 
-export default function AdminPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = React.use(params);
+function AdminContent({ slug }: { slug: string }) {
+  const { locale } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeTab, setActiveTab] = useState<'items' | 'categories' | 'tables'>('items');
@@ -259,17 +256,16 @@ export default function AdminPage({
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-400">Loading...</p>
+        <p className="text-gray-400">{t(locale as Locale, 'loading')}</p>
       </div>
     );
   }
 
   return (
-    <LanguageProvider>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t(locale as Locale, 'adminPanel')}</h1>
         <div className="flex items-center gap-4">
           <LanguagePicker />
           <Link
@@ -284,19 +280,26 @@ export default function AdminPage({
 
       {/* Tabs */}
       <div className="bg-white border-b px-4 flex gap-4">
-        {(['items', 'categories', 'tables'] as const).map((tab) => (
+        {(['items', 'categories', 'tables'] as const).map((tab) => {
+          const tabLabel: Record<string, string> = {
+            items: t(locale as Locale, 'tabItems'),
+            categories: t(locale as Locale, 'tabCategories'),
+            tables: t(locale as Locale, 'tabTables'),
+          };
+          return (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-3 text-sm font-medium border-b-2 transition-colors capitalize ${
+            className={`py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
                 ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-gray-500'
             }`}
           >
-            {tab}
+            {tabLabel[tab]}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
@@ -305,12 +308,12 @@ export default function AdminPage({
         {activeTab === 'items' && (
           <>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-gray-700">Menu Items ({items.length})</h2>
+              <h2 className="font-semibold text-gray-700">{t(locale as Locale, 'tabItems')} ({items.length})</h2>
               <button
                 onClick={openAddItem}
                 className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
               >
-                + Add Item
+                {t(locale as Locale, 'addItem')}
               </button>
             </div>
 
@@ -334,12 +337,12 @@ export default function AdminPage({
                             <p className="font-medium text-gray-900">{item.name}</p>
                             {item.is_popular && (
                               <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">
-                                Popular
+                                {t(locale as Locale, 'popular')}
                               </span>
                             )}
                             {!item.available && (
                               <span className="text-xs bg-red-100 text-red-500 px-2 py-0.5 rounded-full">
-                                Unavailable
+                                {t(locale as Locale, 'unavailable')}
                               </span>
                             )}
                           </div>
@@ -359,19 +362,19 @@ export default function AdminPage({
                                 : 'border-green-200 text-green-600 hover:bg-green-50'
                             }`}
                           >
-                            {item.available ? 'Disable' : 'Enable'}
+                            {item.available ? t(locale as Locale, 'disable') : t(locale as Locale, 'enable')}
                           </button>
                           <button
                             onClick={() => openEditItem(item)}
                             className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
                           >
-                            Edit
+                            {t(locale as Locale, 'edit')}
                           </button>
                           <button
                             onClick={() => deleteItem(item.id)}
                             className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50"
                           >
-                            Delete
+                            {t(locale as Locale, 'delete')}
                           </button>
                         </div>
                       </div>
@@ -390,12 +393,12 @@ export default function AdminPage({
         {activeTab === 'tables' && (
           <>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-gray-700">Tables ({tables.length})</h2>
+              <h2 className="font-semibold text-gray-700">{t(locale as Locale, 'tabTables')} ({tables.length})</h2>
             </div>
 
             {/* Add table form */}
             <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
-              <p className="font-bold text-gray-800 mb-3">Add New Table</p>
+              <p className="font-bold text-gray-800 mb-3">{t(locale as Locale, 'addNewTable')}</p>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -464,7 +467,7 @@ export default function AdminPage({
                         onClick={() => deleteTable(table.id)}
                         className="border border-red-100 text-red-400 px-3 py-2 rounded-lg text-xs font-medium hover:bg-red-50"
                       >
-                        Delete
+                        {t(locale as Locale, 'delete')}
                       </button>
                     </div>
                   </div>
@@ -483,12 +486,12 @@ export default function AdminPage({
         {activeTab === 'categories' && (
           <>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-gray-700">Categories ({categories.length})</h2>
+              <h2 className="font-semibold text-gray-700">{t(locale as Locale, 'tabCategories')} ({categories.length})</h2>
               <button
                 onClick={() => setShowCatForm(true)}
                 className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
               >
-                + Add Category
+                {t(locale as Locale, 'addCategory')}
               </button>
             </div>
             <div className="space-y-2">
@@ -507,7 +510,7 @@ export default function AdminPage({
                     onClick={() => deleteCategory(cat.id)}
                     className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50"
                   >
-                    Delete
+                    {t(locale as Locale, 'delete')}
                   </button>
                 </div>
               ))}
@@ -524,7 +527,7 @@ export default function AdminPage({
             {/* Header */}
             <div className="flex justify-between items-center p-5 border-b border-gray-100">
               <div>
-                <h2 className="font-bold text-lg">{editingItem ? 'Edit Item' : 'Add Menu Item'}</h2>
+                <h2 className="font-bold text-lg">{editingItem ? t(locale as Locale, 'editItem') : t(locale as Locale, 'addMenuItem')}</h2>
                 <div className="flex gap-1 mt-2">
                   {[1,2,3].map(s => (
                     <div key={s} className={`h-1 w-8 rounded-full transition-all ${itemStep >= s ? 'bg-orange-500' : 'bg-gray-200'}`} />
@@ -725,7 +728,7 @@ export default function AdminPage({
                       disabled={!itemForm.category_id}
                       className="flex-2 flex-grow bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white font-bold py-4 rounded-xl text-base transition-colors"
                     >
-                      {editingItem ? '✅ Save Changes' : '✅ Add to Menu'}
+                      {editingItem ? t(locale as Locale, 'saveChanges') : t(locale as Locale, 'addToMenu')}
                     </button>
                   </div>
                 </div>
@@ -779,6 +782,18 @@ export default function AdminPage({
         </a>
       </div>
     </div>
+  );
+}
+
+export default function AdminPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = React.use(params);
+  return (
+    <LanguageProvider>
+      <AdminContent slug={slug} />
     </LanguageProvider>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { LanguageProvider } from '@/lib/LanguageContext';
+import { LanguageProvider, useLanguage } from '@/lib/LanguageContext';
 import LanguagePicker from '@/components/customer/LanguagePicker';
+import { t, Locale } from '@/lib/translations';
 
 const seatEmoji: Record<string, string> = {
   APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -17,13 +18,6 @@ const STATUS_COLORS: Record<string, string> = {
   preparing: 'bg-yellow-500',
   ready: 'bg-green-500',
   served: 'bg-gray-500',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  new: 'NEW',
-  preparing: 'PREPARING',
-  ready: 'READY',
-  served: 'SERVED',
 };
 
 const NEXT_STATUS: Record<string, string> = {
@@ -50,11 +44,18 @@ interface KitchenOrder {
   items: KitchenItem[];
 }
 
-export default function KitchenPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = React.use(params);
+function KitchenDisplay({ slug }: { slug: string }) {
+  const { locale } = useLanguage();
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  const statusLabels: Record<string, string> = {
+    new: t(locale as Locale, 'statusNew'),
+    preparing: t(locale as Locale, 'statusPreparing'),
+    ready: t(locale as Locale, 'statusReady'),
+    served: t(locale as Locale, 'statusServed'),
+  };
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -110,8 +111,8 @@ export default function KitchenPage({ params }: { params: Promise<{ slug: string
 
   function getElapsed(createdAt: string) {
     const diff = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000 / 60);
-    if (diff < 1) return 'just now';
-    return `${diff}m ago`;
+    if (diff < 1) return t(locale as Locale, 'justNow');
+    return `${diff} ${t(locale as Locale, 'minAgo')}`;
   }
 
   const newOrders = orders.filter(o => o.items.some(i => i.status === 'new'));
@@ -120,31 +121,30 @@ export default function KitchenPage({ params }: { params: Promise<{ slug: string
 
   if (loading) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <p className="text-white text-xl">Loading kitchen...</p>
+      <p className="text-white text-xl">{t(locale as Locale, 'loadingKitchen')}</p>
     </div>
   );
 
   return (
-    <LanguageProvider>
     <div className="min-h-screen bg-gray-950 text-white p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-black tracking-wider uppercase">🍳 Kitchen Display</h1>
+          <h1 className="text-2xl font-black tracking-wider uppercase">{t(locale as Locale, 'kitchenDisplay')}</h1>
           <p className="text-gray-400 text-sm mt-1">Auto-refreshes every 8s · Last update: {lastUpdated.toLocaleTimeString()}</p>
         </div>
         <div className="flex items-center gap-4 text-sm">
           <LanguagePicker />
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"/><span>New ({newOrders.length})</span></div>
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"/><span>Preparing ({preparingOrders.length})</span></div>
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"/><span>Ready ({readyOrders.length})</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"/><span>{t(locale as Locale, 'statusNew')} ({newOrders.length})</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"/><span>{t(locale as Locale, 'statusPreparing')} ({preparingOrders.length})</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"/><span>{t(locale as Locale, 'statusReady')} ({readyOrders.length})</span></div>
         </div>
       </div>
 
       {orders.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-gray-500">
           <p className="text-5xl mb-4">🧑‍🍳</p>
-          <p className="text-xl font-semibold">All clear — no active orders</p>
+          <p className="text-xl font-semibold">{t(locale as Locale, 'allClear')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -189,7 +189,7 @@ export default function KitchenPage({ params }: { params: Promise<{ slug: string
                         item.status === 'ready' ? 'bg-green-500 text-white' :
                         'bg-gray-600 text-gray-300'
                       }`}>
-                        {STATUS_LABELS[item.status] || item.status.toUpperCase()}
+                        {statusLabels[item.status] || item.status.toUpperCase()}
                       </span>
                     </div>
                   ))}
@@ -201,12 +201,12 @@ export default function KitchenPage({ params }: { params: Promise<{ slug: string
                     onClick={() => markOrderReady(order.orderId)}
                     className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-xl text-sm transition-all"
                   >
-                    ✅ Mark All Ready
+                    ✅ {t(locale as Locale, 'markAllReady')}
                   </button>
                 )}
                 {allReady && (
                   <div className="w-full bg-green-900/50 border border-green-600 text-green-400 font-bold py-2 rounded-xl text-sm text-center">
-                    ✅ Ready for pickup
+                    ✅ {t(locale as Locale, 'readyForPickup')}
                   </div>
                 )}
               </div>
@@ -215,6 +215,14 @@ export default function KitchenPage({ params }: { params: Promise<{ slug: string
         </div>
       )}
     </div>
+  );
+}
+
+export default function KitchenPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = React.use(params);
+  return (
+    <LanguageProvider>
+      <KitchenDisplay slug={slug} />
     </LanguageProvider>
   );
 }
