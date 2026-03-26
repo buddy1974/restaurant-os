@@ -410,7 +410,7 @@ export default function MenuPage({
               onClick={() => setShowCart(true)}
               className="relative bg-orange-500 text-white px-4 py-2 rounded-full text-sm font-medium"
             >
-              Cart
+              {t(locale as Locale, 'cartButton')}
               {itemCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {itemCount}
@@ -446,7 +446,7 @@ export default function MenuPage({
       {/* Order success banner */}
       {orderSuccess && (
         <div className="bg-green-500 text-white text-center py-3 text-sm font-semibold fixed top-0 left-0 right-0 z-50">
-          ✅ Payment confirmed! Thank you — enjoy your meal 🍽️
+          ✅ {t(locale as Locale, 'paymentConfirmedBanner')}
         </div>
       )}
 

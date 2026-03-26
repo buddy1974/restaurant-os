@@ -3,7 +3,11 @@ import { sql } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    const { orderedItems, restaurantId } = await request.json();
+    const { orderedItems, restaurantId, locale = 'en' } = await request.json();
+    const langMap: Record<string, string> = {
+      en: 'English', de: 'German', tr: 'Turkish', fr: 'French', ar: 'Arabic',
+    };
+    const responseLang = langMap[locale as string] || 'English';
 
     if (!orderedItems || orderedItems.length === 0) {
       return NextResponse.json({ suggestions: [] });
@@ -65,6 +69,7 @@ Pick exactly 3 items that complement what was ordered. Focus on:
 - A side or starter that pairs well
 
 You MUST use the exact ID strings from above.
+Respond entirely in ${responseLang}. The reason field must be in ${responseLang}.
 Respond with ONLY this JSON, nothing else:
 {"suggestions":[{"id":"EXACT_ID_HERE","name":"Item Name","price":0.00,"reason":"Short reason","emoji":"🍺"},{"id":"EXACT_ID_HERE","name":"Item Name","price":0.00,"reason":"Short reason","emoji":"🍰"},{"id":"EXACT_ID_HERE","name":"Item Name","price":0.00,"reason":"Short reason","emoji":"🥗"}]}`;
 

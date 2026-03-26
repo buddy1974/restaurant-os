@@ -124,6 +124,7 @@ export default function Bestellboard({
             orderedItems: myItems,
             restaurantId,
             sessionId: summary?.sessionId || '',
+            locale,
           }),
         });
 
@@ -272,7 +273,7 @@ export default function Bestellboard({
               <div className="px-4 pb-3 flex justify-between items-center">
                 <div>
                   <h2 className="font-black text-lg text-white">
-                    {sessionType === 'group' && isHost ? '👑 Group Bill' : `🍽️ ${t(locale, 'yourOrder')}`}
+                    {sessionType === 'group' && isHost ? `👑 ${t(locale, 'groupTotal')}` : `🍽️ ${t(locale, 'yourOrder')}`}
                   </h2>
                   <p className="text-xs text-gray-400">
                     Table {tableNumber} · ~{estimatedWait} {t(locale, 'minRemaining')}
@@ -295,7 +296,7 @@ export default function Bestellboard({
                       <div className="flex items-center gap-2">
                         <span className="text-lg">{seatEmoji[currentSeatCode] || '🪑'}</span>
                         <span className="font-bold text-sm">{currentSeatCode}</span>
-                        <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">You</span>
+                        <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">{t(locale, 'youBadge')}</span>
                       </div>
                       <span className="font-black text-orange-400">{formatPrice(myTotal)}</span>
                     </div>
@@ -336,7 +337,7 @@ export default function Bestellboard({
                               <span className="text-lg">{seatEmoji[seat.seat_code as string] || '🪑'}</span>
                               <span className="font-bold text-sm text-white">{seat.seat_code as string}</span>
                               {isCurrentSeat && (
-                                <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">You</span>
+                                <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">{t(locale, 'youBadge')}</span>
                               )}
                               {seat.id === summary.hostSeatId && (
                                 <span className="text-xs bg-yellow-500 text-black px-2 py-0.5 rounded-full">Host</span>
@@ -378,7 +379,7 @@ export default function Bestellboard({
                 <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl px-4 py-4 flex justify-between items-center">
                   <div>
                     <p className="text-xs text-orange-200 font-medium">
-                      {sessionType === 'group' && isHost ? 'Group Total' : t(locale, 'myBill')}
+                      {sessionType === 'group' && isHost ? t(locale, 'groupTotal') : t(locale, 'myBill')}
                     </p>
                     <p className="text-2xl font-black text-white">{formatPrice(displayTotal)}</p>
                   </div>
@@ -468,7 +469,7 @@ export default function Bestellboard({
                       }}
                       className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-xl py-3 text-sm font-bold text-white transition-all shadow-lg"
                     >
-                      💳 Pay {formatPrice(displayTotal)}
+                      💳 {t(locale, 'payButton')} {formatPrice(displayTotal)}
                     </button>
                   )}
                 </div>
