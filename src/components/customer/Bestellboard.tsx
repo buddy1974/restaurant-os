@@ -199,15 +199,15 @@ export default function Bestellboard({
       {showWaiterOptions && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center">
           <div className="bg-white rounded-t-2xl p-5 w-full max-w-lg">
-            <p className="font-bold text-gray-800 mb-3 text-center">Why do you need the waiter?</p>
+            <p className="font-bold text-gray-800 mb-3 text-center">{t(locale, 'whyWaiter')}</p>
             <div className="grid grid-cols-2 gap-2 mb-3">
               {[
-                { label: '🍽️ Ready to order more', value: 'Ready to order more' },
-                { label: '💧 Need water', value: 'Needs water' },
-                { label: '🧹 Clean table', value: 'Table needs cleaning' },
-                { label: '❓ Have a question', value: 'Has a question' },
-                { label: '🚨 Urgent help', value: 'Urgent assistance needed' },
-                { label: '🍴 Need cutlery', value: 'Needs cutlery' },
+                { label: `🍽️ ${t(locale, 'readyToOrderMore')}`, value: 'Ready to order more' },
+                { label: `💧 ${t(locale, 'needWater')}`, value: 'Needs water' },
+                { label: `🧹 ${t(locale, 'cleanTable')}`, value: 'Table needs cleaning' },
+                { label: `❓ ${t(locale, 'haveQuestion')}`, value: 'Has a question' },
+                { label: `🚨 ${t(locale, 'urgentHelp')}`, value: 'Urgent assistance needed' },
+                { label: `🍴 ${t(locale, 'needCutlery')}`, value: 'Needs cutlery' },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -219,7 +219,7 @@ export default function Bestellboard({
               ))}
             </div>
             <button onClick={() => setShowWaiterOptions(false)} className="w-full text-sm text-gray-400 py-2">
-              Cancel
+              {t(locale, 'cancel')}
             </button>
           </div>
         </div>
@@ -419,7 +419,7 @@ export default function Bestellboard({
                           <p className="text-xs text-gray-400 mt-0.5 leading-tight">{s.reason}</p>
                           <p className="text-xs font-black text-orange-400 mt-1">{formatPrice(s.price)}</p>
                           {addedItems.has(s.id) ? (
-                            <p className="text-xs text-green-400 mt-1 font-semibold">✓ Added!</p>
+                            <p className="text-xs text-green-400 mt-1 font-semibold">{t(locale, 'addedToCart')}</p>
                           ) : (
                             <p className="text-xs text-orange-400 mt-1 font-semibold">{t(locale, 'addToOrder')}</p>
                           )}

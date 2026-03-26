@@ -13,6 +13,7 @@ import GroupQRCode from '@/components/customer/GroupQRCode';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
 import { LanguageProvider } from '@/lib/LanguageContext';
 import LanguagePicker from '@/components/customer/LanguagePicker';
+import { t, Locale } from '@/lib/translations';
 
 interface TableData {
   id: string;
@@ -471,7 +472,7 @@ export default function MenuPage({
                   />
                   {item.is_popular && (
                     <span className="absolute top-2 left-2 text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full font-medium">
-                      ⭐ Popular
+                      ⭐ {t(locale as Locale, 'popular')}
                     </span>
                   )}
                 </div>
@@ -483,7 +484,7 @@ export default function MenuPage({
                     <h3 className="font-medium text-gray-900">{item.name}</h3>
                     {item.is_popular && !item.image_url && (
                       <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">
-                        Popular
+                        {t(locale as Locale, 'popular')}
                       </span>
                     )}
                   </div>
@@ -600,7 +601,7 @@ export default function MenuPage({
                   disabled={ordering}
                   className="w-full bg-gray-800 text-white py-3 rounded-xl font-semibold text-base mb-3 disabled:opacity-40"
                 >
-                  {ordering ? 'Placing...' : 'Place Order'}
+                  {ordering ? t(locale as Locale, 'placing') : t(locale as Locale, 'placeOrder')}
                 </button>
 
                 {sessionType === 'group' && isHost ? (
