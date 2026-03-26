@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useMenu } from '@/hooks/useMenu';
 import { useCart } from '@/hooks/useCart';
 import PaymentModal from '@/components/customer/PaymentModal';
@@ -40,6 +40,27 @@ export default function MenuPage({
   params: Promise<{ slug: string; tableNumber: string }>;
 }) {
   const { slug, tableNumber } = React.use(params);
+  // Read locale from localStorage — page is the LanguageProvider so cannot call useLanguage()
+  const [locale, setLocale] = useState('en');
+  useEffect(() => {
+    const saved = localStorage.getItem('resto_locale');
+    if (saved && ['en', 'de', 'tr', 'fr', 'ar'].includes(saved)) setLocale(saved);
+    // StorageEvent fires in other tabs; CustomEvent fires in same tab (dispatched by LanguageContext)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'resto_locale' && e.newValue) setLocale(e.newValue);
+    };
+    const onLocaleChange = (e: Event) => {
+      const locale = (e as CustomEvent<string>).detail;
+      if (locale) setLocale(locale);
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('resto_locale_change', onLocaleChange);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('resto_locale_change', onLocaleChange);
+    };
+  }, []);
+
   const [table, setTable] = useState<TableData | null>(null);
   const [session, setSession] = useState<SessionData | null>(null);
   const [loadingTable, setLoadingTable] = useState(true);
@@ -81,8 +102,9 @@ export default function MenuPage({
     BERRY: '🫐', PLUM: '🍆', FIG: '🍂', LIME: '🟢',
   };
 
-  const { categories, items, loading: menuLoading } = useMenu(
-    table?.restaurant_id || null
+  const { categories, items, loading: menuLoading, refetchMenu } = useMenu(
+    table?.restaurant_id || null,
+    locale
   );
   const { cart, addItem, removeItem, updateQuantity, clearCart, total, itemCount } =
     useCart(session?.id || null);
@@ -173,6 +195,23 @@ export default function MenuPage({
       console.log('[MenuPage] table loaded:', table.number, table.restaurant_id);
     }
   }, [table]);
+
+  // Trigger AI translation when locale changes, then re-fetch menu
+  const triggerTranslation = useCallback(async () => {
+    const restaurantId = table?.restaurant_id;
+    if (!restaurantId || locale === 'en') return;
+    await fetch('/api/menu-translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurantId, locale }),
+    });
+    refetchMenu();
+  }, [table?.restaurant_id, locale, refetchMenu]);
+
+  useEffect(() => {
+    if (!table?.restaurant_id || locale === 'en') return;
+    triggerTranslation();
+  }, [locale, table?.restaurant_id, triggerTranslation]);
 
   // Auto-refresh summary every 15 seconds
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface Category {
   id: string;
@@ -24,33 +24,34 @@ interface UseMenuResult {
   items: MenuItem[];
   loading: boolean;
   error: string | null;
+  refetchMenu: () => void;
 }
 
-export function useMenu(restaurantId: string | null): UseMenuResult {
+export function useMenu(restaurantId: string | null, locale = 'en'): UseMenuResult {
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchMenu = useCallback(async () => {
     if (!restaurantId) return;
-
-    async function fetchMenu() {
-      try {
-        const res = await fetch(`/api/menu?restaurantId=${restaurantId}`);
-        if (!res.ok) throw new Error('Failed to load menu');
-        const data = await res.json();
-        setCategories(data.categories);
-        setItems(data.items);
-      } catch (err) {
-        setError('Could not load menu. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/menu?restaurantId=${restaurantId}&locale=${locale}`);
+      if (!res.ok) throw new Error('Failed to load menu');
+      const data = await res.json();
+      setCategories(data.categories);
+      setItems(data.items);
+    } catch {
+      setError('Could not load menu. Please try again.');
+    } finally {
+      setLoading(false);
     }
+  }, [restaurantId, locale]);
 
+  useEffect(() => {
     fetchMenu();
-  }, [restaurantId]);
+  }, [fetchMenu]);
 
-  return { categories, items, loading, error };
+  return { categories, items, loading, error, refetchMenu: fetchMenu };
 }

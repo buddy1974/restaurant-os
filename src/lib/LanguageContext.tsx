@@ -25,6 +25,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   function setLocale(l: Locale) {
     setLocaleState(l);
     localStorage.setItem('resto_locale', l);
+    window.dispatchEvent(new CustomEvent('resto_locale_change', { detail: l }));
   }
 
   return (
