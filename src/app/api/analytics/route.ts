@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
         SUM(oi.quantity * oi.price) as total_revenue
       FROM order_items oi
       JOIN orders o ON o.id = oi.order_id
-      JOIN tables t ON t.id = o.table_id
+      JOIN table_sessions ts ON ts.id = o.session_id
+      JOIN tables t ON t.id = ts.table_id
       WHERE t.restaurant_id = ${rid}
         AND o.created_at >= now() - (${days} || ' days')::interval
         AND o.payment_status = 'paid'
@@ -73,7 +74,8 @@ export async function GET(request: NextRequest) {
         EXTRACT(HOUR FROM o.created_at) as hour,
         COUNT(*) as orders
       FROM orders o
-      JOIN tables t ON t.id = o.table_id
+      JOIN table_sessions ts ON ts.id = o.session_id
+      JOIN tables t ON t.id = ts.table_id
       WHERE t.restaurant_id = ${rid}
         AND o.created_at >= now() - (${days} || ' days')::interval
       GROUP BY hour
