@@ -54,6 +54,12 @@ function AdminContent({ slug }: { slug: string }) {
   const [showCatForm, setShowCatForm] = useState(false);
   const [catName, setCatName] = useState('');
 
+  // Import modal
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ name: string; price: number; category_id: string; description: string; is_popular: boolean; is_drink: boolean }[] | null>(null);
+  const [importError, setImportError] = useState('');
+
   // Tables
   interface TableRow {
     id: string;
@@ -262,6 +268,7 @@ function AdminContent({ slug }: { slug: string }) {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-4 flex justify-between items-center">
@@ -309,12 +316,20 @@ function AdminContent({ slug }: { slug: string }) {
           <>
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-gray-700">{t(locale as Locale, 'tabItems')} ({items.length})</h2>
-              <button
-                onClick={openAddItem}
-                className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
-              >
-                {t(locale as Locale, 'addItem')}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
+                >
+                  🤖 {t(locale as Locale, 'importMenu')}
+                </button>
+                <button
+                  onClick={openAddItem}
+                  className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  {t(locale as Locale, 'addItem')}
+                </button>
+              </div>
             </div>
 
             {categories.map((cat) => {
@@ -782,6 +797,189 @@ function AdminContent({ slug }: { slug: string }) {
         </a>
       </div>
     </div>
+
+    {/* AI Import Modal */}
+    {showImportModal && (
+      <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900">🤖 AI Menu Import</h2>
+            <button
+              onClick={() => { setShowImportModal(false); setImportResult(null); setImportError(''); }}
+              className="text-gray-400 text-2xl"
+            >✕</button>
+          </div>
+
+          {!importResult ? (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">Upload a photo of your printed menu, or paste an image URL. Claude AI will extract all items automatically.</p>
+
+              {/* Photo upload */}
+              <label className="block cursor-pointer">
+                <div className="border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-2xl p-8 text-center transition-all">
+                  <p className="text-4xl mb-2">📷</p>
+                  <p className="font-semibold text-gray-700">Upload menu photo</p>
+                  <p className="text-xs text-gray-400 mt-1">JPG, PNG — photo of printed menu or screenshot</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setImporting(true);
+                    setImportError('');
+                    const reader = new FileReader();
+                    reader.onloadend = async () => {
+                      try {
+                        const base64 = (reader.result as string).split(',')[1];
+                        const res = await fetch('/api/menu-import', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ slug, imageBase64: base64, mediaType: file.type }),
+                        });
+                        const data = await res.json();
+                        if (data.items && data.items.length > 0) {
+                          setImportResult(data.items);
+                        } else {
+                          setImportError('No menu items found. Try a clearer photo.');
+                        }
+                      } catch {
+                        setImportError('Import failed. Please try again.');
+                      } finally {
+                        setImporting(false);
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+
+              {/* URL input */}
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-1">Or paste image URL</p>
+                <div className="flex gap-2">
+                  <input
+                    id="import-url-input"
+                    type="url"
+                    placeholder="https://example.com/menu.jpg"
+                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <button
+                    onClick={async () => {
+                      const input = document.getElementById('import-url-input') as HTMLInputElement;
+                      const url = input?.value.trim();
+                      if (!url) return;
+                      setImporting(true);
+                      setImportError('');
+                      try {
+                        const res = await fetch('/api/menu-import', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ slug, imageUrl: url }),
+                        });
+                        const data = await res.json();
+                        if (data.items && data.items.length > 0) {
+                          setImportResult(data.items);
+                        } else {
+                          setImportError('No items found at that URL.');
+                        }
+                      } catch {
+                        setImportError('Import failed.');
+                      }
+                      setImporting(false);
+                    }}
+                    className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold"
+                  >Go</button>
+                </div>
+              </div>
+
+              {importing && (
+                <div className="text-center py-6">
+                  <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"/>
+                  <p className="text-sm text-gray-600">Claude is reading your menu...</p>
+                </div>
+              )}
+
+              {importError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                  <p className="text-sm text-red-600">{importError}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4">
+                <p className="text-sm text-green-700 font-semibold">✅ Found {importResult.length} menu items</p>
+                <p className="text-xs text-green-600 mt-1">Review and click &quot;Add All to Menu&quot; to import</p>
+              </div>
+
+              <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
+                {importResult.map((item, i) => (
+                  <div key={i} className="flex justify-between items-center bg-gray-50 rounded-xl px-3 py-2">
+                    <div>
+                      <p className="font-semibold text-sm text-gray-800">{item.name}</p>
+                      {item.description && <p className="text-xs text-gray-500">{item.description}</p>}
+                      <p className="text-xs text-gray-400">{categories.find(c => c.id === item.category_id)?.name || 'Unknown category'}</p>
+                    </div>
+                    <p className="text-sm font-bold text-orange-600 ml-3 shrink-0">€{Number(item.price).toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setImportResult(null); setImportError(''); }}
+                  className="flex-1 border-2 border-gray-200 text-gray-600 font-bold py-3 rounded-xl"
+                >
+                  ← Try again
+                </button>
+                <button
+                  onClick={async () => {
+                    setImporting(true);
+                    let added = 0;
+                    for (const item of importResult) {
+                      try {
+                        await fetch('/api/admin/menu', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            slug,
+                            type: 'item',
+                            data: {
+                              name: item.name,
+                              description: item.description,
+                              price: item.price,
+                              category_id: item.category_id,
+                              is_popular: item.is_popular,
+                              is_drink: item.is_drink,
+                              available: true,
+                              image_url: null,
+                            },
+                          }),
+                        });
+                        added++;
+                      } catch { /* skip failed items */ }
+                    }
+                    setImporting(false);
+                    setShowImportModal(false);
+                    setImportResult(null);
+                    fetchMenu();
+                    alert(`✅ ${added} items imported successfully!`);
+                  }}
+                  disabled={importing}
+                  className="flex-2 flex-grow bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
+                >
+                  {importing ? 'Importing...' : `✅ Add All ${importResult.length} Items`}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
