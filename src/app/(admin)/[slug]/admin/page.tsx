@@ -48,6 +48,7 @@ export default function AdminPage({
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [itemForm, setItemForm] = useState(emptyItem);
   const [fetchingImage, setFetchingImage] = useState(false);
+  const [itemStep, setItemStep] = useState(1);
 
   // Category form
   const [showCatForm, setShowCatForm] = useState(false);
@@ -63,7 +64,6 @@ export default function AdminPage({
   }
 
   const [tables, setTables] = useState<TableRow[]>([]);
-  const [newTableNumber, setNewTableNumber] = useState('');
   const [newTableLabel, setNewTableLabel] = useState('');
   const [addingTable, setAddingTable] = useState(false);
   const [qrLoading, setQrLoading] = useState<string | null>(null);
@@ -100,25 +100,20 @@ export default function AdminPage({
   }, [activeTab, fetchTables]);
 
   async function addTable() {
-    if (!newTableNumber) return;
-    setAddingTable(true);
+    if (!slug) return;
+    const number = tables.length + 1;
+    const label = newTableLabel.trim() || `Table ${number}`;
     try {
-      await fetch('/api/admin/tables', {
+      const res = await fetch('/api/admin/tables', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slug,
-          number: parseInt(newTableNumber),
-          label: newTableLabel || `Table ${newTableNumber}`,
-        }),
+        body: JSON.stringify({ slug, number, label }),
       });
-      setNewTableNumber('');
+      if (!res.ok) throw new Error('Failed');
       setNewTableLabel('');
       fetchTables();
     } catch (err) {
-      console.error('Failed to add table', err);
-    } finally {
-      setAddingTable(false);
+      console.error('addTable error:', err);
     }
   }
 
@@ -150,11 +145,13 @@ export default function AdminPage({
   function openAddItem() {
     setEditingItem(null);
     setItemForm(emptyItem);
+    setItemStep(1);
     setShowItemForm(true);
   }
 
   function openEditItem(item: MenuItem) {
     setEditingItem(item);
+    setItemStep(1);
     setItemForm({
       name: item.name,
       description: item.description || '',
@@ -384,30 +381,25 @@ export default function AdminPage({
             </div>
 
             {/* Add table form */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Add New Table</p>
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+              <p className="font-bold text-gray-800 mb-3">Add New Table</p>
               <div className="flex gap-2">
                 <input
-                  type="number"
-                  value={newTableNumber}
-                  onChange={(e) => setNewTableNumber(e.target.value)}
-                  placeholder="Table #"
-                  className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                />
-                <input
+                  type="text"
                   value={newTableLabel}
                   onChange={(e) => setNewTableLabel(e.target.value)}
-                  placeholder="Label (optional)"
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  onKeyDown={(e) => e.key === 'Enter' && addTable()}
+                  placeholder={`e.g. Window Table, Bar 1, Terrace... (will be Table ${tables.length + 1})`}
+                  className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
                 <button
                   onClick={addTable}
-                  disabled={addingTable || !newTableNumber}
-                  className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
                 >
-                  Add
+                  + Add
                 </button>
               </div>
+              <p className="text-xs text-gray-400 mt-2">Table number assigned automatically · Press Enter to add</p>
             </div>
 
             {/* Tables list */}
@@ -514,149 +506,204 @@ export default function AdminPage({
       {/* Item Form Modal */}
       {showItemForm && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-bold text-lg">
-                {editingItem ? 'Edit Item' : 'Add Item'}
-              </h2>
-              <button onClick={() => setShowItemForm(false)} className="text-gray-400 text-2xl">✕</button>
-            </div>
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
 
-            <div className="space-y-3">
+            {/* Header */}
+            <div className="flex justify-between items-center p-5 border-b border-gray-100">
               <div>
-                <label className="text-sm text-gray-600 font-medium">Name</label>
-                <input
-                  value={itemForm.name}
-                  onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-                  onBlur={(e) => {
-                    if (e.target.value && !itemForm.image_url) {
-                      fetchItemImage(e.target.value);
-                    }
-                  }}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm"
-                  placeholder="Item name"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600 font-medium">Description</label>
-                <input
-                  value={itemForm.description}
-                  onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm"
-                  placeholder="Short description"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600 font-medium">Photo</label>
-                <div className="mt-1 space-y-2">
-                  {itemForm.image_url ? (
-                    <div className="relative">
-                      <img
-                        src={itemForm.image_url}
-                        alt="Item preview"
-                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                        onError={() => setItemForm({ ...itemForm, image_url: '' })}
-                      />
-                      <div className="absolute top-2 right-2 flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => fetchItemImage(itemForm.name)}
-                          disabled={fetchingImage}
-                          className="bg-white text-gray-600 text-xs px-2 py-1 rounded-lg shadow border border-gray-200 disabled:opacity-50"
-                        >
-                          {fetchingImage ? '...' : '🔄 New photo'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setItemForm({ ...itemForm, image_url: '' })}
-                          className="bg-white text-red-400 text-xs px-2 py-1 rounded-lg shadow border border-red-100"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fetchItemImage(itemForm.name)}
-                        disabled={fetchingImage || !itemForm.name}
-                        className="flex-1 border border-dashed border-gray-300 rounded-lg py-3 text-sm text-gray-400 hover:border-orange-300 hover:text-orange-400 disabled:opacity-40 transition-colors"
-                      >
-                        {fetchingImage ? '⏳ Finding photo...' : '🔍 Auto-find photo'}
-                      </button>
-                    </div>
-                  )}
-                  <input
-                    value={itemForm.image_url}
-                    onChange={(e) => setItemForm({ ...itemForm, image_url: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-400"
-                    placeholder="Or paste image URL directly"
-                  />
+                <h2 className="font-bold text-lg">{editingItem ? 'Edit Item' : 'Add Menu Item'}</h2>
+                <div className="flex gap-1 mt-2">
+                  {[1,2,3].map(s => (
+                    <div key={s} className={`h-1 w-8 rounded-full transition-all ${itemStep >= s ? 'bg-orange-500' : 'bg-gray-200'}`} />
+                  ))}
                 </div>
               </div>
-
-              <div>
-                <label className="text-sm text-gray-600 font-medium">Price (€)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={itemForm.price}
-                  onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600 font-medium">Category</label>
-                <select
-                  value={itemForm.category_id}
-                  onChange={(e) => setItemForm({ ...itemForm, category_id: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm"
-                >
-                  <option value="">Select category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={itemForm.is_popular}
-                    onChange={(e) => setItemForm({ ...itemForm, is_popular: e.target.checked })}
-                  />
-                  Popular
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={itemForm.is_drink}
-                    onChange={(e) => setItemForm({ ...itemForm, is_drink: e.target.checked })}
-                  />
-                  Drink
-                </label>
-              </div>
+              <button onClick={() => { setShowItemForm(false); setItemStep(1); }} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowItemForm(false)}
-                className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveItem}
-                className="flex-1 bg-orange-500 text-white py-3 rounded-xl text-sm font-medium"
-              >
-                {editingItem ? 'Save Changes' : 'Add Item'}
-              </button>
+            <div className="p-5">
+
+              {/* STEP 1 — Name & Price */}
+              {itemStep === 1 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">What is this dish called?</label>
+                    <input
+                      value={itemForm.name}
+                      onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
+                      placeholder="e.g. Jollof Rice, Grilled Chicken..."
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-4 text-base focus:outline-none focus:border-orange-500"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Price (€)</label>
+                    <input
+                      type="number"
+                      step="0.50"
+                      min="0"
+                      value={itemForm.price}
+                      onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
+                      placeholder="0.00"
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Short description (optional)</label>
+                    <input
+                      value={itemForm.description}
+                      onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
+                      placeholder="e.g. Served with rice and salad"
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setItemStep(2)}
+                    disabled={!itemForm.name || !itemForm.price}
+                    className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white font-bold py-4 rounded-xl text-base transition-colors"
+                  >
+                    Next: Add Photo →
+                  </button>
+                </div>
+              )}
+
+              {/* STEP 2 — Photo */}
+              {itemStep === 2 && (
+                <div className="space-y-4">
+                  <label className="block text-sm font-bold text-gray-700">Photo for {itemForm.name}</label>
+
+                  {/* Upload from device */}
+                  <label className="block cursor-pointer">
+                    <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${itemForm.image_url ? 'border-orange-300 bg-orange-50' : 'border-gray-300 hover:border-orange-400 bg-gray-50'}`}>
+                      {itemForm.image_url ? (
+                        <div className="relative">
+                          <img src={itemForm.image_url} className="w-full h-40 object-cover rounded-xl" alt="preview" />
+                          <p className="text-xs text-orange-600 mt-2 font-semibold">✓ Photo added — tap to change</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-5xl mb-3">📷</p>
+                          <p className="font-bold text-gray-700">Tap to upload photo</p>
+                          <p className="text-sm text-gray-400 mt-1">From your phone camera or PC</p>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setItemForm({ ...itemForm, image_url: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </label>
+
+                  {/* Auto-find from internet */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fetchItemImage(itemForm.name)}
+                      disabled={fetchingImage}
+                      className="flex-1 border-2 border-gray-200 hover:border-orange-400 text-gray-600 font-semibold py-3 rounded-xl text-sm transition-all"
+                    >
+                      {fetchingImage ? '⏳ Searching...' : '🔍 Auto-find from internet'}
+                    </button>
+                    {itemForm.image_url && (
+                      <button
+                        type="button"
+                        onClick={() => setItemForm({ ...itemForm, image_url: '' })}
+                        className="border-2 border-red-200 text-red-400 hover:bg-red-50 px-4 rounded-xl text-sm"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setItemStep(1)}
+                      className="flex-1 border-2 border-gray-200 text-gray-600 font-bold py-3 rounded-xl"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      onClick={() => setItemStep(3)}
+                      className="flex-2 flex-grow bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors"
+                    >
+                      Next: Category →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3 — Category & flags */}
+              {itemStep === 3 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-3">Which category?</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {categories.map(cat => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setItemForm({ ...itemForm, category_id: cat.id })}
+                          className={`py-4 px-3 rounded-xl font-semibold text-sm border-2 transition-all ${
+                            itemForm.category_id === cat.id
+                              ? 'bg-orange-500 text-white border-orange-500'
+                              : 'bg-white text-gray-700 border-gray-200 hover:border-orange-300'
+                          }`}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setItemForm({ ...itemForm, is_popular: !itemForm.is_popular })}
+                      className={`flex-1 py-3 rounded-xl font-semibold text-sm border-2 transition-all ${
+                        itemForm.is_popular ? 'bg-yellow-400 text-white border-yellow-400' : 'bg-white text-gray-600 border-gray-200'
+                      }`}
+                    >
+                      ⭐ Popular dish
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setItemForm({ ...itemForm, is_drink: !itemForm.is_drink })}
+                      className={`flex-1 py-3 rounded-xl font-semibold text-sm border-2 transition-all ${
+                        itemForm.is_drink ? 'bg-blue-400 text-white border-blue-400' : 'bg-white text-gray-600 border-gray-200'
+                      }`}
+                    >
+                      🥤 It&apos;s a drink
+                    </button>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setItemStep(2)}
+                      className="flex-1 border-2 border-gray-200 text-gray-600 font-bold py-3 rounded-xl"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      onClick={async () => { await saveItem(); setItemStep(1); }}
+                      disabled={!itemForm.category_id}
+                      className="flex-2 flex-grow bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white font-bold py-4 rounded-xl text-base transition-colors"
+                    >
+                      {editingItem ? '✅ Save Changes' : '✅ Add to Menu'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </div>
