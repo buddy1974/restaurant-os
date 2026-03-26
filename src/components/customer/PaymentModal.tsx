@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { SessionSummary, SeatSummary } from '@/hooks/useSessionSummary';
 import StripeCheckout from '@/components/customer/StripeCheckout';
+import { useLanguage } from '@/lib/LanguageContext';
+import { t, isRTL } from '@/lib/translations';
 
 const seatEmoji: Record<string, string> = {
   APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -48,6 +50,7 @@ export default function PaymentModal({
   onClose,
   onSuccess,
 }: Props) {
+  const { locale } = useLanguage();
   const [step, setStep] = useState<Step>(sessionType === 'individual' ? 'method' : 'mode');
   const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(sessionType === 'individual' ? 'unit' : null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
@@ -193,7 +196,7 @@ export default function PaymentModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40">
-      <div className="bg-white rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto pointer-events-auto">
+      <div className="bg-white rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto pointer-events-auto" dir={isRTL(locale) ? 'rtl' : 'ltr'}>
 
         {/* Header */}
         <div className="flex justify-between items-center mb-5">
@@ -211,9 +214,9 @@ export default function PaymentModal({
             {alreadyPaid && 'Bill settled'}
             {!alreadyPaid && step === 'mode' && 'How do you want to pay?'}
             {!alreadyPaid && step === 'split_select' && 'Select seats to pay for'}
-            {!alreadyPaid && step === 'method' && 'How would you like to pay?'}
-            {!alreadyPaid && step === 'tip' && 'Add a tip?'}
-            {!alreadyPaid && step === 'cash_waiting' && 'Payment pending'}
+            {!alreadyPaid && step === 'method' && t(locale, 'howPayToday')}
+            {!alreadyPaid && step === 'tip' && t(locale, 'addTip')}
+            {!alreadyPaid && step === 'cash_waiting' && t(locale, 'paymentPending')}
           </h2>
           <button onClick={onClose} className="text-gray-400 text-2xl">✕</button>
         </div>
@@ -385,7 +388,7 @@ export default function PaymentModal({
                   disabled={selectedSeats.length === 0}
                   className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold disabled:opacity-40"
                 >
-                  Continue
+                  {t(locale, 'continue')}
                 </button>
               </div>
             )}
@@ -402,8 +405,8 @@ export default function PaymentModal({
                   >
                     <span className="text-3xl">💵</span>
                     <div className="text-left">
-                      <p className="font-semibold text-gray-900">Pay with Cash</p>
-                      <p className="text-sm text-gray-400">A waiter will come to your table</p>
+                      <p className="font-semibold text-gray-900">{t(locale, 'payWithCash')}</p>
+                      <p className="text-sm text-gray-400">{t(locale, 'cashDesc')}</p>
                     </div>
                   </button>
 
@@ -415,14 +418,14 @@ export default function PaymentModal({
                   >
                     <span className="text-3xl">💳</span>
                     <div className="text-left">
-                      <p className="font-semibold text-gray-900">Pay with Card</p>
-                      <p className="text-sm text-gray-400">Pay securely by card</p>
+                      <p className="font-semibold text-gray-900">{t(locale, 'payWithCard')}</p>
+                      <p className="text-sm text-gray-400">{t(locale, 'cardDesc')}</p>
                     </div>
                   </button>
                 </div>
 
                 <div className="border-t pt-4 mb-4 flex justify-between font-bold text-lg">
-                  <span>You Pay</span>
+                  <span>{t(locale, 'youPay')}</span>
                   <span>{formatPrice(getPayingAmount())}</span>
                 </div>
 
@@ -431,7 +434,7 @@ export default function PaymentModal({
                   disabled={!paymentMethod}
                   className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold disabled:opacity-40"
                 >
-                  Continue
+                  {t(locale, 'continue')}
                 </button>
               </div>
             )}
@@ -440,7 +443,7 @@ export default function PaymentModal({
             {step === 'tip' && (
               <div>
                 <p className="text-sm text-gray-500 text-center mb-4">
-                  Would you like to add a tip for the staff?
+                  {t(locale, 'tipQuestion')}
                 </p>
 
                 <div className="grid grid-cols-4 gap-2 mb-6">
@@ -454,7 +457,7 @@ export default function PaymentModal({
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      {pct === 0 ? 'None' : `${pct}%`}
+                      {pct === 0 ? t(locale, 'none') : `${pct}%`}
                     </button>
                   ))}
                 </div>
@@ -462,24 +465,24 @@ export default function PaymentModal({
                 {tipPercent > 0 && (
                   <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-center">
                     <p className="text-sm text-green-700">
-                      🙏 Thank you! Adding <strong>€{tipAmount.toFixed(2)}</strong> tip
+                      🙏 {t(locale, 'thankYouTip')} <strong>€{tipAmount.toFixed(2)}</strong> {t(locale, 'tip')}
                     </p>
                   </div>
                 )}
 
                 <div className="border-t pt-4 mb-4 space-y-1">
                   <div className="flex justify-between text-sm text-gray-500">
-                    <span>Bill</span>
+                    <span>{t(locale, 'bill')}</span>
                     <span>€{getPayingAmount().toFixed(2)}</span>
                   </div>
                   {tipPercent > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
-                      <span>Tip ({tipPercent}%)</span>
+                      <span>{t(locale, 'tip')} ({tipPercent}%)</span>
                       <span>+ €{tipAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
+                    <span>{t(locale, 'total')}</span>
                     <span className="text-orange-600">€{totalWithTip.toFixed(2)}</span>
                   </div>
                 </div>
@@ -494,7 +497,7 @@ export default function PaymentModal({
                   }}
                   className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold text-lg"
                 >
-                  Continue
+                  {t(locale, 'continue')}
                 </button>
               </div>
             )}
@@ -504,22 +507,22 @@ export default function PaymentModal({
               <div className="text-center py-6">
                 <div className="text-6xl mb-4">🔔</div>
                 <h2 className="font-black text-xl text-gray-900 mb-2">
-                  Waiter is on the way!
+                  {t(locale, 'waiterOnWay')}
                 </h2>
                 <p className="text-sm text-gray-500 mb-2">
-                  Please have your payment ready:
+                  {t(locale, 'havePaymentReady')}
                 </p>
                 <div className="bg-orange-50 border-2 border-orange-200 rounded-xl py-4 px-6 mb-6">
                   <p className="text-3xl font-black text-orange-600">
                     €{totalWithTip.toFixed(2)}
                   </p>
                   <p className="text-xs text-orange-400 mt-1">
-                    Cash{tipPercent > 0 ? ` · incl. €${tipAmount.toFixed(2)} tip` : ''}
+                    {t(locale, 'cash')}{tipPercent > 0 ? ` · incl. €${tipAmount.toFixed(2)} ${t(locale, 'tip')}` : ''}
                   </p>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-6 text-sm text-blue-600">
-                  💡 Tap the button below <strong>only after</strong> the waiter has collected your cash.
+                  💡 {t(locale, 'tapAfterWaiter')} <strong>{t(locale, 'onlyAfter')}</strong> {t(locale, 'waiterCollected')}
                 </div>
 
                 {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
@@ -529,14 +532,14 @@ export default function PaymentModal({
                   disabled={processing}
                   className="w-full bg-green-500 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 mb-3"
                 >
-                  {processing ? 'Confirming...' : '✅ I have paid — get my receipt'}
+                  {processing ? '...' : `✅ ${t(locale, 'iHavePaid')}`}
                 </button>
 
                 <button
                   onClick={onClose}
                   className="w-full border border-gray-200 text-gray-400 py-3 rounded-xl text-sm"
                 >
-                  Keep open
+                  {t(locale, 'keepOpen')}
                 </button>
               </div>
             )}

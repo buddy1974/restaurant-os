@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { SessionSummary, SeatSummary } from '@/hooks/useSessionSummary';
+import { useLanguage } from '@/lib/LanguageContext';
+import { t, isRTL } from '@/lib/translations';
 
 const seatEmoji: Record<string, string> = {
   APPLE: '🍎', MANGO: '🥭', BANANA: '🍌', PINEAPPLE: '🍍',
@@ -51,6 +53,7 @@ export default function Bestellboard({
   onCheckout,
   onCallWaiter,
 }: Props) {
+  const { locale } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -232,7 +235,7 @@ export default function Bestellboard({
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
                   <span className="text-xs text-gray-400 font-medium">
-                    {myItems.length} item{myItems.length > 1 ? 's' : ''} · ~{estimatedWait} min
+                    {myItems.length} item{myItems.length > 1 ? 's' : ''} · ~{estimatedWait} {t(locale, 'minRemaining')}
                   </span>
                 </div>
                 {suggestions.length > 0 && (
@@ -253,6 +256,7 @@ export default function Bestellboard({
             <div
               className="bg-gray-900 text-white shadow-2xl overflow-hidden"
               style={{ borderRadius: '20px 20px 0 0', maxHeight: '80vh', overflowY: 'auto' }}
+              dir={isRTL(locale) ? 'rtl' : 'ltr'}
             >
               {/* Handle bar */}
               <div className="flex justify-center pt-3 pb-1">
@@ -263,10 +267,10 @@ export default function Bestellboard({
               <div className="px-4 pb-3 flex justify-between items-center">
                 <div>
                   <h2 className="font-black text-lg text-white">
-                    {sessionType === 'group' && isHost ? '👑 Group Bill' : '🍽️ Your Order'}
+                    {sessionType === 'group' && isHost ? '👑 Group Bill' : `🍽️ ${t(locale, 'yourOrder')}`}
                   </h2>
                   <p className="text-xs text-gray-400">
-                    Table {tableNumber} · ~{estimatedWait} min remaining
+                    Table {tableNumber} · ~{estimatedWait} {t(locale, 'minRemaining')}
                   </p>
                 </div>
                 <button
@@ -369,7 +373,7 @@ export default function Bestellboard({
                 <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl px-4 py-4 flex justify-between items-center">
                   <div>
                     <p className="text-xs text-orange-200 font-medium">
-                      {sessionType === 'group' && isHost ? 'Group Total' : 'My Bill'}
+                      {sessionType === 'group' && isHost ? 'Group Total' : t(locale, 'myBill')}
                     </p>
                     <p className="text-2xl font-black text-white">{formatPrice(displayTotal)}</p>
                   </div>
@@ -388,7 +392,7 @@ export default function Bestellboard({
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-sm">✨</span>
-                      <p className="text-sm font-bold text-white">Chef recommends</p>
+                      <p className="text-sm font-bold text-white">{t(locale, 'chefRecommends')}</p>
                       {loadingSuggestions && (
                         <div className="w-3 h-3 border border-orange-400 border-t-transparent rounded-full animate-spin" />
                       )}
@@ -412,7 +416,7 @@ export default function Bestellboard({
                           {addedItems.has(s.id) ? (
                             <p className="text-xs text-green-400 mt-1 font-semibold">✓ Added!</p>
                           ) : (
-                            <p className="text-xs text-orange-400 mt-1 font-semibold">+ Add</p>
+                            <p className="text-xs text-orange-400 mt-1 font-semibold">{t(locale, 'addToOrder')}</p>
                           )}
                         </button>
                       ))}
@@ -432,7 +436,7 @@ export default function Bestellboard({
                       disabled={callingWaiter}
                       className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl py-3 text-sm font-semibold text-gray-300 transition-colors"
                     >
-                      🔔 Call Waiter
+                      🔔 {t(locale, 'callWaiter')}
                     </button>
                   )}
 

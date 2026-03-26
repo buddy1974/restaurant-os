@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useLanguage } from '@/lib/LanguageContext';
+import { t, isRTL } from '@/lib/translations';
 
 interface Props {
   tableLabel: string;
@@ -17,12 +19,13 @@ export default function SessionSetup({
   onSelectHost,
   loading,
 }: Props) {
+  const { locale } = useLanguage();
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [groupCodeInput, setGroupCodeInput] = useState('');
   const [codeError, setCodeError] = useState('');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6" dir={isRTL(locale) ? 'rtl' : 'ltr'}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">{restaurantName}</h1>
@@ -30,8 +33,8 @@ export default function SessionSetup({
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
-          <h2 className="text-lg font-bold text-gray-900 text-center mb-1">Welcome 👋</h2>
-          <p className="text-sm text-gray-400 text-center mb-6">How are you paying today?</p>
+          <h2 className="text-lg font-bold text-gray-900 text-center mb-1">{t(locale, 'welcome')}</h2>
+          <p className="text-sm text-gray-400 text-center mb-6">{t(locale, 'howPaying')}</p>
 
           <div className="space-y-3">
             {/* Just me */}
@@ -42,8 +45,8 @@ export default function SessionSetup({
             >
               <span className="text-4xl">👤</span>
               <div>
-                <p className="font-bold text-gray-900">I pay for myself</p>
-                <p className="text-sm text-gray-400">My own bill — I order and I pay</p>
+                <p className="font-bold text-gray-900">{t(locale, 'payMyself')}</p>
+                <p className="text-sm text-gray-400">{t(locale, 'payMyselfDesc')}</p>
               </div>
             </button>
 
@@ -56,8 +59,8 @@ export default function SessionSetup({
               >
                 <span className="text-4xl">🎟️</span>
                 <div>
-                  <p className="font-bold text-gray-900">I have a group code</p>
-                  <p className="text-sm text-gray-400">Someone else is paying — enter their code</p>
+                  <p className="font-bold text-gray-900">{t(locale, 'joinGroup')}</p>
+                  <p className="text-sm text-gray-400">{t(locale, 'joinGroupDesc')}</p>
                 </div>
               </button>
             ) : (
@@ -110,8 +113,8 @@ export default function SessionSetup({
             >
               <span className="text-4xl">👑</span>
               <div>
-                <p className="font-bold text-gray-900">I pay for the group</p>
-                <p className="text-sm text-gray-400">Start a group — others join with your code</p>
+                <p className="font-bold text-gray-900">{t(locale, 'startGroup')}</p>
+                <p className="text-sm text-gray-400">{t(locale, 'groupSessionDesc')}</p>
               </div>
             </button>
           </div>

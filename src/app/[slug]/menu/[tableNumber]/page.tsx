@@ -11,6 +11,8 @@ import Bestellboard from '@/components/customer/Bestellboard';
 import ReceiptModal from '@/components/customer/ReceiptModal';
 import GroupQRCode from '@/components/customer/GroupQRCode';
 import { useSessionSummary } from '@/hooks/useSessionSummary';
+import { LanguageProvider } from '@/lib/LanguageContext';
+import LanguagePicker from '@/components/customer/LanguagePicker';
 
 interface TableData {
   id: string;
@@ -306,13 +308,15 @@ export default function MenuPage({
 
   if (needsSetup && table) {
     return (
-      <SessionSetup
-        tableLabel={table.label || `Table ${table.number}`}
-        restaurantName={table.restaurant_name}
-        onSelectIndividual={() => handleSessionSetup('individual')}
-        onSelectHost={() => handleSessionSetup('group')}
-        loading={settingUpSession}
-      />
+      <LanguageProvider>
+        <SessionSetup
+          tableLabel={table.label || `Table ${table.number}`}
+          restaurantName={table.restaurant_name}
+          onSelectIndividual={() => handleSessionSetup('individual')}
+          onSelectHost={() => handleSessionSetup('group')}
+          loading={settingUpSession}
+        />
+      </LanguageProvider>
     );
   }
 
@@ -333,6 +337,7 @@ export default function MenuPage({
   }
 
   return (
+    <LanguageProvider>
     <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
@@ -373,6 +378,11 @@ export default function MenuPage({
               )}
             </button>
           </div>
+        </div>
+
+        {/* Language picker */}
+        <div className="px-4 pb-1">
+          <LanguagePicker />
         </div>
 
         {/* Category tabs */}
@@ -700,5 +710,6 @@ export default function MenuPage({
         </a>
       </div>
     </div>
+    </LanguageProvider>
   );
 }
