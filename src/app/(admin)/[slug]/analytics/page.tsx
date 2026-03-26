@@ -46,9 +46,9 @@ export default function AnalyticsPage({ params }: { params: Promise<{ slug: stri
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const maxDayRevenue = Math.max(...(data?.revenueByDay.map(d => d.revenue) || [0]));
-  const maxItemQty = Math.max(...(data?.topItems.map(i => i.qty) || [0]));
-  const maxHourOrders = Math.max(...(data?.busiestHours.map(h => h.orders) || [0]));
+  const maxDayRevenue = Math.max(...(data?.revenueByDay?.map(d => d.revenue) ?? [0]));
+  const maxItemQty = Math.max(...(data?.topItems?.map(i => i.qty) ?? [0]));
+  const maxHourOrders = Math.max(...(data?.busiestHours?.map(h => h.orders) ?? [0]));
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
