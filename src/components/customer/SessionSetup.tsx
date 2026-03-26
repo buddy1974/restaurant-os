@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useLanguage } from '@/lib/LanguageContext';
 import { t, isRTL } from '@/lib/translations';
+import LanguagePicker from '@/components/customer/LanguagePicker';
 
 interface Props {
   tableLabel: string;
@@ -25,7 +26,10 @@ export default function SessionSetup({
   const [codeError, setCodeError] = useState('');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6" dir={isRTL(locale) ? 'rtl' : 'ltr'}>
+    <div className="relative min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6" dir={isRTL(locale) ? 'rtl' : 'ltr'}>
+      <div className="absolute top-4 right-4">
+        <LanguagePicker />
+      </div>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">{restaurantName}</h1>
