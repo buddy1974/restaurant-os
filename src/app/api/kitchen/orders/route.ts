@@ -23,9 +23,9 @@ export async function GET(request: NextRequest) {
         mi.price
       FROM orders o
       JOIN order_items oi ON oi.order_id = o.id
-      JOIN tables t ON t.id = o.table_id
-      LEFT JOIN seats s ON s.id = o.seat_id
       JOIN table_sessions ts ON ts.id = o.session_id
+      JOIN tables t ON t.id = ts.table_id
+      LEFT JOIN seats s ON s.id = o.seat_id
       JOIN restaurants r ON r.id = t.restaurant_id
       WHERE r.slug = ${slug}
         AND ts.status = 'active'
