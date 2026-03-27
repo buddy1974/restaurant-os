@@ -49,6 +49,7 @@ function KitchenDisplay({ slug }: { slug: string }) {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [clearing, setClearing] = useState(false);
 
   const statusLabels: Record<string, string> = {
     new: t(locale as Locale, 'statusNew'),
@@ -85,6 +86,21 @@ function KitchenDisplay({ slug }: { slug: string }) {
       body: JSON.stringify({ itemId, status: next }),
     });
     fetchOrders();
+  }
+
+  async function clearCompleted() {
+    setClearing(true);
+    try {
+      await fetch('/api/kitchen/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug }),
+      });
+      fetchOrders();
+    } catch (err) {
+      console.error('Clear failed', err);
+    }
+    setClearing(false);
   }
 
   async function markOrderReady(orderId: string) {
@@ -135,10 +151,19 @@ function KitchenDisplay({ slug }: { slug: string }) {
         </div>
         <div className="flex items-center justify-between">
           <p className="text-gray-400 text-xs">Auto-refreshes · {lastUpdated.toLocaleTimeString()}</p>
-          <div className="flex gap-3 text-xs">
+          <div className="flex gap-3 text-xs items-center">
             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block"/><span>{t(locale as Locale, 'statusNew')} ({newOrders.length})</span></div>
             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block"/><span>Prep ({preparingOrders.length})</span></div>
             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block"/><span>{t(locale as Locale, 'statusReady')} ({readyOrders.length})</span></div>
+            {readyOrders.length > 0 && (
+              <button
+                onClick={clearCompleted}
+                disabled={clearing}
+                className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {clearing ? '...' : `🗑️ Clear ${readyOrders.length} done`}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -208,7 +233,7 @@ function KitchenDisplay({ slug }: { slug: string }) {
                 )}
                 {allReady && (
                   <div className="w-full bg-green-900/50 border border-green-600 text-green-400 font-bold py-2 rounded-xl text-sm text-center">
-                    ✅ {t(locale as Locale, 'readyForPickup')}
+                    {t(locale as Locale, 'readyForService')}
                   </div>
                 )}
               </div>
