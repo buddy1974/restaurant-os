@@ -246,7 +246,7 @@ export default function Bestellboard({
                 </div>
                 {suggestions.length > 0 && (
                   <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-                    💡 {suggestions.length} suggestions
+                    💡 {suggestions.length} {t(locale, 'suggestions')}
                   </span>
                 )}
               </div>

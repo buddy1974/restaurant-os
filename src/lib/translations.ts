@@ -115,6 +115,7 @@ export const translations = {
     tabTables: 'Tables',
     tabCategories: 'Categories',
     importMenu: 'AI Import Menu',
+    suggestions: 'suggestions',
   },
   de: {
     welcome: 'Willkommen 👋',
@@ -222,6 +223,7 @@ export const translations = {
     tabTables: 'Tische',
     tabCategories: 'Kategorien',
     importMenu: 'KI Menü importieren',
+    suggestions: 'Vorschläge',
   },
   tr: {
     welcome: 'Hoş geldiniz 👋',
@@ -329,6 +331,7 @@ export const translations = {
     tabTables: 'Masalar',
     tabCategories: 'Kategoriler',
     importMenu: 'AI Menü İçe Aktar',
+    suggestions: 'öneri',
   },
   fr: {
     welcome: 'Bienvenue 👋',
@@ -436,6 +439,7 @@ export const translations = {
     tabTables: 'Tables',
     tabCategories: 'Catégories',
     importMenu: 'Importer menu IA',
+    suggestions: 'suggestions',
   },
   ar: {
     welcome: 'مرحباً 👋',
@@ -543,6 +547,7 @@ export const translations = {
     tabTables: 'الطاولات',
     tabCategories: 'الفئات',
     importMenu: 'استيراد القائمة بالذكاء الاصطناعي',
+    suggestions: 'اقتراحات',
   },
 } as const;
 

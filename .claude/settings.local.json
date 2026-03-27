@@ -16,7 +16,23 @@
       "Bash(mkdir -p \"C:\\\\Users\\\\loneb\\\\Documents\\\\ai-software-dev\\\\projects\\\\restaurant-os\\\\src\\\\app\\\\[slug]\\\\guest\\\\[sessionId]\\\\[seatId]\")",
       "Bash(node -e \"const s = require\\(''stripe''\\); console.log\\(s.LATEST_API_VERSION\\)\")",
       "Bash(node -e \"const Stripe = require\\(''''stripe''''\\).default; const s = new Stripe\\(''''sk_test_x''''\\); console.log\\(s.getApiField\\(''''version''''\\)\\)\")",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(grep -n \"PaymentModal\\\\|createPortal\\\\|portal\" src/components/customer/Bestellboard.tsx src/app/[slug]/menu/[tableNumber]/page.tsx)",
+      "Bash(curl -X POST http://localhost:3000/api/ai-suggest -H \"Content-Type: application/json\" -d \"{\"\"orderedItems\"\":[{\"\"id\"\":\"\"1\"\",\"\"name\"\":\"\"Grilled Shrimp\"\",\"\"price\"\":16,\"\"quantity\"\":1}],\"\"restaurantId\"\":\"\"d61266a3-cdb1-4aab-9899-85e5cb85e8b1\"\",\"\"sessionId\"\":\"\"test\"\"}\")",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\({path:''.env.local''}\\); console.log\\(''ANTHROPIC_API_KEY:'', process.env.ANTHROPIC_API_KEY ? ''✓ set, length='' + process.env.ANTHROPIC_API_KEY.length : ''❌ MISSING''\\); console.log\\(''DATABASE_URL:'', process.env.DATABASE_URL ? ''✓ set'' : ''❌ MISSING''\\);\")",
+      "Bash(taskkill:*)",
+      "Bash(node -e \"require\\(''@vercel/blob''\\); console.log\\(''blob installed''\\)\")",
+      "Bash(curl:*)",
+      "Bash(npx ts-node --esm -e \":*)",
+      "Bash(grep -n \"useLanguage\\\\|LanguageProvider\\\\|locale\" src/app/[slug]/menu/[tableNumber]/page.tsx)",
+      "Bash(grep -n \"LanguageProvider\" src/app/[slug]/menu/[tableNumber]/page.tsx)",
+      "Bash(node -e \"const webpush = require\\(''web-push''\\); const keys = webpush.generateVAPIDKeys\\(\\); console.log\\(''VAPID_PUBLIC_KEY='' + keys.publicKey\\); console.log\\(''VAPID_PRIVATE_KEY='' + keys.privateKey\\);\")",
+      "Bash(grep -n \"Place Order\\\\|Place order\\\\|Why do you need\\\\|Ready to order\\\\|Need water\\\\|Clean table\\\\|Have a question\\\\|Urgent help\\\\|Need cutlery\\\\|Cancel\" src/app/[slug]/menu/[tableNumber]/page.tsx)",
+      "Bash(grep -rn \"Place Order\\\\|callWaiter\\\\|waiter reason\\\\|reason\" src/app/[slug]/menu/[tableNumber]/page.tsx)",
+      "Bash(grep -n \"slug\\\\|params\\\\|demo\" src/app/\\\\\\(staff\\\\\\)/[slug]/kitchen/page.tsx)",
+      "Bash(grep -n \"Place Order\\\\|Placing\\\\|Why do you need\\\\|Need water\\\\|Clean table\\\\|Have a question\\\\|Urgent help\\\\|Need cutlery\\\\|Ready to order more\" src/app/[slug]/menu/[tableNumber]/page.tsx src/components/customer/Bestellboard.tsx)",
+      "Bash(grep -n \"resto_locale\\\\|locale\" src/app/[slug]/menu/[tableNumber]/page.tsx)",
+      "Bash(grep -n \"Your seat\\\\|Table 1\\\\|Notify me when food\\\\|yourSeat\\\\|notifyFood\" src/app/[slug]/menu/[tableNumber]/page.tsx)"
     ]
   }
 }

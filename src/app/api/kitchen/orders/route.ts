@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import webpush from 'web-push';
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(request: NextRequest) {
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
         mi.price
       FROM orders o
       JOIN order_items oi ON oi.order_id = o.id
+      JOIN menu_items mi ON mi.id = oi.item_id
       JOIN table_sessions ts ON ts.id = o.session_id
       JOIN tables t ON t.id = ts.table_id
       LEFT JOIN seats s ON s.id = o.seat_id
@@ -87,21 +89,26 @@ export async function PATCH(request: NextRequest) {
     // Send push notification when order is marked ready
     if (status === 'ready' && orderId) {
       try {
+        webpush.setVapidDetails(
+          process.env.VAPID_EMAIL!,
+          process.env.VAPID_PUBLIC_KEY!,
+          process.env.VAPID_PRIVATE_KEY!
+        );
         const [order] = await sql`SELECT session_id FROM orders WHERE id = ${orderId}`;
         if (order) {
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-          await fetch(`${appUrl}/api/push/send`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: order.session_id,
-              title: '🍽️ Your food is ready!',
-              body: 'Your order is ready to be served. Enjoy your meal!',
-            }),
-          });
+          const subs = await sql`SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE session_id = ${order.session_id}`;
+          const payload = JSON.stringify({ title: '🍽️ Your food is ready!', body: 'Your order is ready to be served. Enjoy your meal!' });
+          await Promise.allSettled(
+            subs.map((sub) =>
+              webpush.sendNotification(
+                { endpoint: sub.endpoint as string, keys: { p256dh: sub.p256dh as string, auth: sub.auth as string } },
+                payload
+              )
+            )
+          );
         }
       } catch (e) {
-        console.error('[kitchen] push notification failed:', e);
+        console.error('[kitchen] push failed:', e);
       }
     }
 

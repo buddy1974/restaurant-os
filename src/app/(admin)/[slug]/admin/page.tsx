@@ -818,18 +818,23 @@ function AdminContent({ slug }: { slug: string }) {
               <label className="block cursor-pointer">
                 <div className="border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-2xl p-8 text-center transition-all">
                   <p className="text-4xl mb-2">📷</p>
-                  <p className="font-semibold text-gray-700">Upload menu photo</p>
-                  <p className="text-xs text-gray-400 mt-1">JPG, PNG — photo of printed menu or screenshot</p>
+                  <p className="font-semibold text-gray-700">Upload menu (photo or PDF)</p>
+                  <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF — printed menu, screenshot or scanned document</p>
                 </div>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     setImporting(true);
                     setImportError('');
+                    if (file.type === 'application/pdf') {
+                      setImportError('PDF detected — please take a screenshot of your menu and upload that instead, or use the URL option.');
+                      setImporting(false);
+                      return;
+                    }
                     const reader = new FileReader();
                     reader.onloadend = async () => {
                       try {
