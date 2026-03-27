@@ -1,25 +1,34 @@
 'use client';
 import React from 'react';
 import { useLanguage } from '@/lib/LanguageContext';
-import { LANGUAGE_NAMES, Locale } from '@/lib/translations';
+import { Locale } from '@/lib/translations';
+
+const FLAGS: Record<Locale, string> = {
+  en: '🇬🇧',
+  de: '🇩🇪',
+  tr: '🇹🇷',
+  fr: '🇫🇷',
+  ar: '🇸🇦',
+};
 
 export default function LanguagePicker() {
   const { locale, setLocale } = useLanguage();
-  const locales = Object.keys(LANGUAGE_NAMES) as Locale[];
+  const locales = Object.keys(FLAGS) as Locale[];
 
   return (
-    <div className="flex gap-1 flex-wrap justify-center">
+    <div className="flex gap-1 flex-wrap">
       {locales.map(l => (
         <button
           key={l}
           onClick={() => setLocale(l)}
-          className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
+          className={`text-xl leading-none p-1 rounded-lg transition-all ${
             locale === l
-              ? 'bg-orange-500 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-orange-500 shadow-sm scale-110'
+              : 'opacity-50 hover:opacity-100'
           }`}
+          title={l.toUpperCase()}
         >
-          {LANGUAGE_NAMES[l]}
+          {FLAGS[l]}
         </button>
       ))}
     </div>
