@@ -116,6 +116,7 @@ export const translations = {
     tabCategories: 'Categories',
     importMenu: 'AI Import Menu',
     suggestions: 'suggestions',
+    foodIsReady: '🍽️ Your food is ready! Please collect.',
   },
   de: {
     welcome: 'Willkommen 👋',
@@ -224,6 +225,7 @@ export const translations = {
     tabCategories: 'Kategorien',
     importMenu: 'KI Menü importieren',
     suggestions: 'Vorschläge',
+    foodIsReady: '🍽️ Ihr Essen ist fertig! Bitte abholen.',
   },
   tr: {
     welcome: 'Hoş geldiniz 👋',
@@ -332,6 +334,7 @@ export const translations = {
     tabCategories: 'Kategoriler',
     importMenu: 'AI Menü İçe Aktar',
     suggestions: 'öneri',
+    foodIsReady: '🍽️ Yemeğiniz hazır! Lütfen alınız.',
   },
   fr: {
     welcome: 'Bienvenue 👋',
@@ -440,6 +443,7 @@ export const translations = {
     tabCategories: 'Catégories',
     importMenu: 'Importer menu IA',
     suggestions: 'suggestions',
+    foodIsReady: '🍽️ Votre repas est prêt! Veuillez récupérer.',
   },
   ar: {
     welcome: 'مرحباً 👋',
@@ -548,6 +552,7 @@ export const translations = {
     tabCategories: 'الفئات',
     importMenu: 'استيراد القائمة بالذكاء الاصطناعي',
     suggestions: 'اقتراحات',
+    foodIsReady: '🍽️ طعامك جاهز! يرجى الاستلام.',
   },
 } as const;
 

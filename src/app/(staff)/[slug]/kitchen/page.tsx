@@ -126,18 +126,20 @@ function KitchenDisplay({ slug }: { slug: string }) {
   );
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-4">
+    <div className="min-h-screen bg-gray-950 text-white p-3 md:p-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-black tracking-wider uppercase">{t(locale as Locale, 'kitchenDisplay')}</h1>
-          <p className="text-gray-400 text-sm mt-1">Auto-refreshes every 8s · Last update: {lastUpdated.toLocaleTimeString()}</p>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-xl font-black tracking-wider uppercase">{t(locale as Locale, 'kitchenDisplay')}</h1>
           <LanguagePicker />
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"/><span>{t(locale as Locale, 'statusNew')} ({newOrders.length})</span></div>
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"/><span>{t(locale as Locale, 'statusPreparing')} ({preparingOrders.length})</span></div>
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"/><span>{t(locale as Locale, 'statusReady')} ({readyOrders.length})</span></div>
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-gray-400 text-xs">Auto-refreshes · {lastUpdated.toLocaleTimeString()}</p>
+          <div className="flex gap-3 text-xs">
+            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block"/><span>{t(locale as Locale, 'statusNew')} ({newOrders.length})</span></div>
+            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block"/><span>Prep ({preparingOrders.length})</span></div>
+            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block"/><span>{t(locale as Locale, 'statusReady')} ({readyOrders.length})</span></div>
+          </div>
         </div>
       </div>
 

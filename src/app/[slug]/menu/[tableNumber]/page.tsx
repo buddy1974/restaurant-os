@@ -693,6 +693,7 @@ export default function MenuPage({
           currentSeatCode={seat.seat_code}
           tableNumber={table.number}
           restaurantId={table.restaurant_id}
+          restaurantSlug={slug}
           sessionType={sessionType || 'individual'}
           isHost={isHost}
           onAddItem={(item) => addItem(item)}

@@ -35,6 +35,7 @@ interface Props {
   currentSeatCode: string;
   tableNumber: number;
   restaurantId: string;
+  restaurantSlug?: string;
   sessionType: 'individual' | 'group';
   isHost: boolean;
   onAddItem: (item: { id: string; name: string; price: number; quantity: number }) => void;
@@ -48,6 +49,7 @@ export default function Bestellboard({
   currentSeatCode,
   tableNumber,
   restaurantId,
+  restaurantSlug,
   sessionType,
   isHost,
   onAddItem,
@@ -68,6 +70,7 @@ export default function Bestellboard({
   const [waiterCalled, setWaiterCalled] = useState(false);
   const [showWaiterOptions, setShowWaiterOptions] = useState(false);
   const [newItemFlash, setNewItemFlash] = useState<string | null>(null);
+  const [foodReady, setFoodReady] = useState(false);
   const prevItemCount = useRef(0);
 
   const currentSeat = summary?.seats.find((s) => s.id === currentSeatId);
@@ -98,6 +101,31 @@ export default function Bestellboard({
   useEffect(() => {
     setSuggestionsFetched(false);
   }, [myItems.length]);
+
+  // Poll kitchen status every 10s to detect when food is ready
+  useEffect(() => {
+    if (!summary?.sessionId || !currentSeatId || !restaurantSlug) return;
+    const check = async () => {
+      try {
+        const res = await fetch(`/api/kitchen/orders?slug=${restaurantSlug}`);
+        const data = await res.json();
+        const seat = summary.seats?.find((s) => s.id === currentSeatId);
+        if (!seat) return;
+        const myOrders = (data.orders || []).filter(
+          (o: { seatCode: string; items: { status: string }[] }) => o.seatCode === (seat as { seat_code: string }).seat_code
+        );
+        const allReady =
+          myOrders.length > 0 &&
+          myOrders.every((o: { items: { status: string }[] }) =>
+            o.items.every((i: { status: string }) => i.status === 'ready' || i.status === 'served')
+          );
+        if (allReady && !foodReady) setFoodReady(true);
+      } catch { /* silent */ }
+    };
+    check();
+    const interval = setInterval(check, 10000);
+    return () => clearInterval(interval);
+  }, [summary?.sessionId, currentSeatId, restaurantSlug, foodReady, summary?.seats]);
 
   // Fetch AI suggestions — single clean effect with fetched guard
   useEffect(() => {
@@ -227,7 +255,7 @@ export default function Bestellboard({
       )}
 
       {/* Main Bestellboard */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex justify-center pointer-events-none pb-safe">
         <div className="w-full max-w-lg pointer-events-auto">
 
           {/* Collapsed bar */}
@@ -430,20 +458,23 @@ export default function Bestellboard({
                   </div>
                 )}
 
-                {/* Push notification subscribe */}
-                {!subscribed && permission !== 'denied' && (
+                {/* Food ready / push notification */}
+                {foodReady ? (
+                  <div className="w-full bg-green-500 text-white font-bold py-3 rounded-xl text-center text-sm mb-2 animate-pulse">
+                    🍽️ {t(locale, 'foodIsReady')}
+                  </div>
+                ) : !subscribed && permission !== 'denied' ? (
                   <button
                     onClick={subscribe}
                     className="w-full bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-xl py-3 text-sm font-semibold text-gray-300 transition-colors mb-2"
                   >
                     🔔 {t(locale, 'notifyFood')}
                   </button>
-                )}
-                {subscribed && (
+                ) : subscribed ? (
                   <div className="w-full text-center text-xs text-green-400 py-2 mb-2">
                     ✅ {t(locale, 'foodReadyNotified')}
                   </div>
-                )}
+                ) : null}
 
                 {/* Action buttons */}
                 <div className="grid grid-cols-2 gap-2 pt-1">
