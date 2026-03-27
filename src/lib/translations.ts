@@ -116,7 +116,7 @@ export const translations = {
     tabCategories: 'Categories',
     importMenu: 'AI Import Menu',
     suggestions: 'suggestions',
-    foodIsReady: '🍽️ Your food is ready! Please collect.',
+    foodIsReady: '🍽️ Your food is on the way — the waiter will bring it shortly!',
   },
   de: {
     welcome: 'Willkommen 👋',
@@ -225,7 +225,7 @@ export const translations = {
     tabCategories: 'Kategorien',
     importMenu: 'KI Menü importieren',
     suggestions: 'Vorschläge',
-    foodIsReady: '🍽️ Ihr Essen ist fertig! Bitte abholen.',
+    foodIsReady: '🍽️ Ihr Essen kommt gleich — der Kellner bringt es zu Ihnen!',
   },
   tr: {
     welcome: 'Hoş geldiniz 👋',
@@ -334,7 +334,7 @@ export const translations = {
     tabCategories: 'Kategoriler',
     importMenu: 'AI Menü İçe Aktar',
     suggestions: 'öneri',
-    foodIsReady: '🍽️ Yemeğiniz hazır! Lütfen alınız.',
+    foodIsReady: '🍽️ Yemeğiniz geliyor — garson size getirecek!',
   },
   fr: {
     welcome: 'Bienvenue 👋',
@@ -443,7 +443,7 @@ export const translations = {
     tabCategories: 'Catégories',
     importMenu: 'Importer menu IA',
     suggestions: 'suggestions',
-    foodIsReady: '🍽️ Votre repas est prêt! Veuillez récupérer.',
+    foodIsReady: '🍽️ Votre repas arrive — le serveur vous l\'apporte bientôt!',
   },
   ar: {
     welcome: 'مرحباً 👋',
@@ -552,7 +552,7 @@ export const translations = {
     tabCategories: 'الفئات',
     importMenu: 'استيراد القائمة بالذكاء الاصطناعي',
     suggestions: 'اقتراحات',
-    foodIsReady: '🍽️ طعامك جاهز! يرجى الاستلام.',
+    foodIsReady: '🍽️ طعامك في الطريق — سيحضره النادل إليك قريباً!',
   },
 } as const;
 
